@@ -5,3 +5,9 @@ extracted/
 
 # Sensitive credentials (safety net, in case they ever land outside extracted/)
 **/firebase-credentials.json
+
+# Local secrets for the DepanAuto app (DB password, ORS key, etc.) — never commit.
+**/config.local.php
+
+# Rate-limiter scratch files (if ever created inside the repo).
+**/depanauto_rl/
