@@ -1,0 +1,7 @@
+# Extracted backup contents (regenerable from the tracked .tar.gz archives).
+# Excluded because it is derived data (~110 MB, mostly a phpMyAdmin install)
+# and contains sensitive credentials that must not be committed.
+extracted/
+
+# Sensitive credentials (safety net, in case they ever land outside extracted/)
+**/firebase-credentials.json
