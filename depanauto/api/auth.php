@@ -26,6 +26,8 @@ switch ($action) {
         if (empty($name)) jsonError('Numele este obligatoriu');
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) jsonError('Email invalid');
         if (strlen($password) < 6) jsonError('Parola trebuie sa aiba minim 6 caractere');
+        // Consimtamant GDPR obligatoriu (Termeni + Politica de confidentialitate)
+        if (($_POST['consent'] ?? '') !== '1') jsonError('Trebuie sa accepti Termenii si Politica de confidentialitate');
 
         // Verifica email unic
         $stmt = $db->prepare("SELECT id FROM users WHERE email = ?");
@@ -36,8 +38,8 @@ switch ($action) {
         $hash  = password_hash($password, PASSWORD_DEFAULT);
 
         $stmt = $db->prepare("
-            INSERT INTO users (token, role, name, email, phone, password_hash, online, last_seen)
-            VALUES (?, ?, ?, ?, ?, ?, 0, NOW())
+            INSERT INTO users (token, role, name, email, phone, password_hash, online, last_seen, consent_at)
+            VALUES (?, ?, ?, ?, ?, ?, 0, NOW(), NOW())
         ");
         $stmt->execute([$token, $role, $name, $email, $phone, $hash]);
 

@@ -203,7 +203,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <label>An fabricație</label>
         <input type="number" id="r-year" placeholder="2018" min="1990" max="2025">
       </div>
-      <button class="auth-submit" style="margin-top:20px;width:100%" onclick="doRegister()">Creează cont</button>
+      <label style="display:flex;align-items:flex-start;gap:8px;margin-top:18px;font-size:13px;color:#444;line-height:1.4;cursor:pointer">
+        <input type="checkbox" id="r-consent" style="margin-top:2px;flex-shrink:0">
+        <span>Sunt de acord cu <a href="../legal/termeni-conditii.html" target="_blank" rel="noopener">Termenii și condițiile</a> și cu <a href="../legal/politica-confidentialitate.html" target="_blank" rel="noopener">Politica de confidențialitate</a>, inclusiv prelucrarea locației mele GPS pentru furnizarea serviciului.</span>
+      </label>
+      <button class="auth-submit" style="margin-top:16px;width:100%" onclick="doRegister()">Creează cont</button>
     </div>
   </div>
 </div>
@@ -345,8 +349,9 @@ async function doRegister() {
     const model=document.getElementById('r-model').value.trim();
     const year=document.getElementById('r-year').value.trim();
     if(!name||!email||!password){showAuthError('Numele, emailul și parola sunt obligatorii');return;}
+    if(!document.getElementById('r-consent').checked){showAuthError('Trebuie să accepți Termenii și Politica de confidențialitate');return;}
     try {
-        const res=await fetch(API_BASE+'/auth.php',{method:'POST',body:new URLSearchParams({action:'register',role:'client',name,email,phone,password})});
+        const res=await fetch(API_BASE+'/auth.php',{method:'POST',body:new URLSearchParams({action:'register',role:'client',name,email,phone,password,consent:'1'})});
         const data=await res.json();
         if(data.success){
             // Salveaza si profilul masinii

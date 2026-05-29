@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS users (
     lng           DOUBLE DEFAULT NULL,
     online        TINYINT(1) DEFAULT 0,
     fcm_token     VARCHAR(255) DEFAULT NULL,
+    -- Dovada consimtamantului GDPR (data acceptarii Termenilor + Politicii).
+    consent_at    DATETIME DEFAULT NULL,
     last_seen     DATETIME DEFAULT NULL,
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 );
