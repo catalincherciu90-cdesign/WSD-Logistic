@@ -1,6 +1,7 @@
 <?php
 // api/action.php
 require_once 'config.php';
+require_once 'send_notification.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') jsonError('Metoda nepermisa', 405);
 
@@ -50,6 +51,15 @@ switch ($action) {
         $stmt->execute([$token, round($distRoute, 2), round($price, 2), $requestId]);
 
         if ($stmt->rowCount() === 0) jsonError('Nu s-a putut accepta cererea');
+
+        // Notifica clientul ca un depanator a acceptat (best-effort).
+        notifyUserByToken(
+            $db,
+            $request['client_token'],
+            'Depanator pe drum! 🚗',
+            ($user['name'] ?: 'Un depanator') . ' ți-a acceptat cererea și vine spre tine.',
+            ['type' => 'accepted', 'request_id' => (string)$requestId]
+        );
 
         jsonResponse(['success' => true, 'distance_km' => round($distRoute, 2), 'price_ron' => round($price, 2)]);
         break;

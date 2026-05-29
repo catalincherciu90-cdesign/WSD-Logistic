@@ -49,11 +49,17 @@ cp api/config.local.example.php api/config.local.php
 
 ---
 
-## Rămas de făcut (recomandări, în afara acestui sprint)
+## Livrat ulterior (sprint completare)
 
-- **GDPR/legal**: Politică de confidențialitate, T&C, consimțământ (vezi `../ANALIZA-AGENTI.md`, secțiunea @clara).
+- **GDPR/legal** ✅: pagini `legal/politica-confidentialitate.html` și `legal/termeni-conditii.html`, checkbox de consimțământ obligatoriu la înregistrare (client + depanator), enforce server-side în `auth.php` + dovadă `users.consent_at`. **De completat:** placeholder-ele `[COMPLETEAZĂ: ...]` cu datele firmei (denumire, CUI, adresă, e-mail GDPR).
+- **PWA client** ✅: `client/manifest.json` + `client/sw.js` (clientul e acum instalabil ca PWA).
+- **Service workers** ✅: strategie network-first pentru HTML (update-urile ajung la useri), versiuni de cache bumpate.
+- **Push notifications** ⚙️ (necesită acțiune): wiring complet adăugat — `fcm-init.js` înregistrează tokenul FCM (client + depanator), iar backend-ul notifică clientul la acceptare și la mesaj. **Push-ul rămâne DEZACTIVAT** până completezi `FCM_VAPID_KEY` în `fcm-init.js` cu cheia VAPID din Firebase Console → Cloud Messaging → Web Push certificates. Codul e best-effort și nu afectează aplicația cât timp cheia lipsește. **Nu a putut fi testat live** (lipsă cheie VAPID + mediu Firebase).
+
+## Rămas de făcut
+
 - **Token-uri user**: adaugă expirare/rotație (acum sunt valabile la nesfârșit).
-- **Push către client**: clientul nu înregistrează token FCM (vezi @alex).
-- **`API_BASE`** hardcodat în 3 fișiere front-end — de centralizat.
-- **HTTPS**: obligatoriu (GPS funcționează doar pe HTTPS).
+- **`API_BASE`** hardcodat în fișierele front-end — de centralizat într-un singur config.
+- **HTTPS**: obligatoriu (GPS și push funcționează doar pe HTTPS).
+- **Push către depanatori la cerere nouă**: backend-ul notifică acum doar clientul; pentru a notifica depanatorii la `create_request` trebuie iterat peste tokenele FCM ale depanatorilor online.
 - **`api/` orfan** de la rădăcina backup-ului (cu `require_once 'config.php'` rupt) nu a fost importat — era cod mort.

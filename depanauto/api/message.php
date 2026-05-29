@@ -5,6 +5,7 @@
 // GET: token, request_id -> citeste mesajele neseen
 
 require_once 'config.php';
+require_once 'send_notification.php';
 
 $db = getDB();
 $token = getToken();
@@ -23,12 +24,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($user['role'] !== 'depanator') jsonError('Doar depanatorii pot trimite mesaje');
 
     // Verifica ca cererea ii apartine
-    $stmt = $db->prepare("SELECT id FROM requests WHERE id = ? AND depanator_token = ? AND status = 'accepted'");
+    $stmt = $db->prepare("SELECT client_token FROM requests WHERE id = ? AND depanator_token = ? AND status = 'accepted'");
     $stmt->execute([$requestId, $token]);
-    if (!$stmt->fetch()) jsonError('Cerere negasita');
+    $request = $stmt->fetch();
+    if (!$request) jsonError('Cerere negasita');
 
     $db->prepare("INSERT INTO request_messages (request_id, sender_role, message) VALUES (?, 'depanator', ?)")
        ->execute([$requestId, $message]);
+
+    // Notifica clientul ca a primit un mesaj de la depanator (best-effort).
+    notifyUserByToken(
+        $db,
+        $request['client_token'],
+        '🔧 Mesaj de la depanator',
+        mb_substr($message, 0, 120),
+        ['type' => 'message', 'request_id' => (string)$requestId]
+    );
 
     jsonResponse(['success' => true]);
 

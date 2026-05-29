@@ -1,0 +1,16 @@
+{
+  "name": "DepanAuto - Client",
+  "short_name": "DepanAuto",
+  "description": "Cheamă rapid un depanator auto în apropiere.",
+  "start_url": "/depanauto/client/",
+  "scope": "/depanauto/client/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#1d4ed8",
+  "lang": "ro",
+  "icons": [
+    { "src": "/depanauto/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/depanauto/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

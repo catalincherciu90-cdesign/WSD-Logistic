@@ -59,6 +59,17 @@ function sendPushNotification($fcmToken, $title, $body, $data = []) {
     return $httpCode === 200;
 }
 
+// Trimite o notificare push catre un utilizator (dupa token-ul lui de cont).
+// Best-effort: daca userul nu are fcm_token sau Firebase nu e configurat, nu face nimic.
+function notifyUserByToken($db, $userToken, $title, $body, $data = []) {
+    if (empty($userToken)) return false;
+    $stmt = $db->prepare("SELECT fcm_token FROM users WHERE token = ?");
+    $stmt->execute([$userToken]);
+    $row = $stmt->fetch();
+    if (!$row || empty($row['fcm_token'])) return false;
+    return sendPushNotification($row['fcm_token'], $title, $body, $data);
+}
+
 function getFirebaseAccessToken($credentialsFile) {
     if (!file_exists($credentialsFile)) return null;
 

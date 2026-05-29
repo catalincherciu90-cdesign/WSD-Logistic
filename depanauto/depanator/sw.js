@@ -1,5 +1,5 @@
 // Service Worker pentru DepanAuto Depanator PWA
-const CACHE_NAME = 'depanauto-v1';
+const CACHE_NAME = 'depanauto-depanator-v2';
 const API_BASE = 'https://wsdlogistics.ro/depanauto/api';
 
 // Fisiere de cacheat la instalare
@@ -29,12 +29,26 @@ self.addEventListener('activate', event => {
     self.clients.claim();
 });
 
-// Fetch - serveste din cache pentru fisiere statice
+// Fetch - network-first pentru HTML (update-uri propagate), cache-first pentru asset-uri
 self.addEventListener('fetch', event => {
-    if (event.request.url.includes('/depanauto/api/')) return; // API mereu live
-    event.respondWith(
-        caches.match(event.request).then(cached => cached || fetch(event.request))
-    );
+    const req = event.request;
+    if (req.method !== 'GET') return;
+    if (req.url.includes('/depanauto/api/')) return; // API mereu live
+
+    if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
+        event.respondWith(
+            fetch(req)
+                .then(res => {
+                    const copy = res.clone();
+                    caches.open(CACHE_NAME).then(c => c.put(req, copy)).catch(()=>{});
+                    return res;
+                })
+                .catch(() => caches.match(req).then(c => c || caches.match('/depanauto/depanator/')))
+        );
+        return;
+    }
+
+    event.respondWith(caches.match(req).then(cached => cached || fetch(req)));
 });
 
 // Polling in background pentru cereri noi
