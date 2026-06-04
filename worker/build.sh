@@ -16,6 +16,9 @@ for d in client depanator admin istoric legal icons; do
 done
 [ -f "$SRC/fcm-init.js" ] && cp "$SRC/fcm-init.js" "$DST/"
 [ -f "$SRC/index.html" ] && cp "$SRC/index.html" "$DST/"
+# Landing page servit si la RADACINA site-ului (/). Link-urile din el sunt
+# absolute (/depanauto/...), deci aplicatia ramane sub /depanauto/.
+[ -f "$SRC/index.html" ] && cp "$SRC/index.html" "$HERE/public/index.html"
 
 # API_BASE: din URL absolut hardcodat -> cale relativa same-origin
 while IFS= read -r f; do
