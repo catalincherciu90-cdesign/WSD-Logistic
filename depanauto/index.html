@@ -3,9 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DepanAuto — Depanare auto rapidă, la tine acasă</title>
-<meta name="description" content="Cheamă un depanator auto în câteva secunde. Urmărești mașina pe hartă în timp real, preț transparent pe kilometru, fără telefoane și negocieri.">
-<meta name="theme-color" content="#1d4ed8">
+<title>Depanare auto non-stop 24/7 — DepanAuto | Asistență rutieră rapidă</title>
+<meta name="description" content="Depanare auto non-stop și asistență rutieră 24/7. Cheamă un depanator dintr-un buton, urmărește-l pe hartă în timp real și vezi prețul transparent pe km. Fără telefoane, fără așteptare.">
+<meta name="keywords" content="depanare auto, depanare auto non-stop, asistență rutieră 24/7, tractări auto, depanator, urgență auto">
+<meta property="og:title" content="Depanare auto non-stop 24/7 — DepanAuto">
+<meta property="og:description" content="Cheamă un depanator dintr-un buton, urmărește-l pe hartă în timp real, preț transparent pe km. Asistență rutieră 24/7.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0b1220">
 <style>
   :root{
     --blue:#1d4ed8; --blue-d:#1e40af; --green:#059669; --ink:#0f172a;
@@ -26,12 +30,12 @@
   .btn-lg{padding:16px 28px;font-size:16px}
 
   /* NAV */
-  header{position:sticky;top:0;z-index:50;background:rgba(248,250,252,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  header{position:sticky;top:0;z-index:50;background:rgba(11,18,32,.82);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.08)}
   nav{display:flex;align-items:center;gap:16px;height:64px}
-  .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px;color:#fff}
   .logo .mark{width:34px;height:34px;border-radius:9px;background:var(--blue);display:grid;place-items:center;font-size:18px}
-  .nav-links{display:flex;gap:26px;margin-left:auto;font-size:14px;font-weight:600;color:var(--muted)}
-  .nav-links a:hover{color:var(--ink)}
+  .nav-links{display:flex;gap:26px;margin-left:auto;font-size:14px;font-weight:600;color:#94a3b8}
+  .nav-links a:hover{color:#fff}
   .nav-cta{display:flex;gap:10px;margin-left:24px}
   @media(max-width:860px){.nav-links{display:none}.nav-cta{margin-left:auto}}
 
@@ -64,6 +68,29 @@
   .card-pop .price{font-size:22px;font-weight:800;color:var(--blue);margin-top:4px}
   .card-pop .eta{font-size:12px;color:var(--muted)}
   .card-pop .go{margin-top:10px;width:100%;text-align:center;background:var(--green);color:#fff;padding:10px;border-radius:11px;font-weight:700;font-size:14px}
+
+  /* HERO A — non-stop / urgență */
+  .hero-a{background:radial-gradient(1200px 520px at 72% -12%,#1e3a8a,#0b1220);color:#fff;overflow:hidden;position:relative;margin-top:-1px}
+  .hero-a .grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:42px 42px;-webkit-mask-image:radial-gradient(820px 420px at 72% 20%,#000,transparent);mask-image:radial-gradient(820px 420px at 72% 20%,#000,transparent)}
+  .hero-a .inner{position:relative;display:grid;grid-template-columns:1.05fr .95fr;gap:34px;align-items:center;padding:72px 0 60px}
+  .hero-a .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.45);color:#6ee7b7;padding:7px 14px;border-radius:100px;font-size:13px;font-weight:700}
+  .hero-a .bdot{width:9px;height:9px;border-radius:50%;background:#10b981;animation:blink 1.2s infinite}
+  @keyframes blink{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(16,185,129,.6)}50%{opacity:.5;box-shadow:0 0 0 7px rgba(16,185,129,0)}}
+  .hero-a h1{font-size:50px;margin:18px 0 16px;line-height:1.08}
+  .hero-a h1 .grad{background:linear-gradient(90deg,#60a5fa,#34d399);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero-a p.sub{color:#cbd5e1;font-size:18px;max-width:500px;margin-bottom:26px}
+  .hero-a .hero-cta{display:flex;gap:12px;flex-wrap:wrap}
+  .hero-a .btn-out{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.32)}
+  .hero-a .trust{display:flex;gap:18px;margin-top:24px;font-size:13px;color:#94a3b8;flex-wrap:wrap}
+  .hero-a .trust b{color:#fff}
+  .hero-a svg{width:100%;height:auto;filter:drop-shadow(0 14px 32px rgba(0,0,0,.45))}
+  .routeLine{stroke:#3b82f6;stroke-width:5;fill:none;stroke-linecap:round;stroke-dasharray:8 12;animation:dash 1.4s linear infinite}
+  @keyframes dash{to{stroke-dashoffset:-40}}
+  .truck{font-size:30px;offset-path:path('M40 230 C 140 120, 280 300, 420 130');offset-rotate:0deg;animation:drive 5s ease-in-out infinite}
+  @keyframes drive{0%{offset-distance:0%}55%{offset-distance:100%}100%{offset-distance:100%}}
+  .pinA{animation:drop .6s ease both}
+  @keyframes drop{0%{transform:translateY(-18px);opacity:0}100%{transform:translateY(0);opacity:1}}
+  @media(max-width:860px){.hero-a .inner{grid-template-columns:1fr;padding:48px 0 40px}.hero-a h1{font-size:34px}}
 
   /* SECTIONS */
   section{padding:60px 0}
@@ -135,15 +162,17 @@
   </div>
 </header>
 
-<!-- HERO -->
-<div class="wrap">
-  <section class="hero">
+<!-- HERO A — non-stop / urgență -->
+<section class="hero-a">
+  <div class="grid-bg"></div>
+  <div class="wrap inner">
     <div>
-      <h1>Pană pe drum? <span class="hl">Un depanator vine la tine</span> în câteva minute.</h1>
-      <p class="sub">Apeși un buton, vezi depanatorul venind spre tine pe hartă în timp real și știi prețul din prima — fără telefoane, fără negocieri, fără surprize.</p>
+      <span class="badge"><span class="bdot"></span> Depanatori activi acum în zona ta</span>
+      <h1>Depanare auto <span class="grad">non-stop</span>, ajutor pe drum în câteva minute</h1>
+      <p class="sub">Asistență rutieră 24/7: ceri ajutor dintr-un buton, vezi depanatorul venind spre tine pe hartă în timp real și știi prețul din prima — fără telefoane, fără așteptare.</p>
       <div class="hero-cta">
-        <a href="client/" class="btn btn-blue btn-lg">🚗 Sunt client — cheamă ajutor</a>
-        <a href="depanator/" class="btn btn-ghost btn-lg">🔧 Sunt depanator</a>
+        <a href="client/" class="btn btn-blue btn-lg">🚗 Cheamă acum</a>
+        <a href="depanator/" class="btn btn-out btn-lg">🔧 Sunt depanator</a>
       </div>
       <div class="trust">
         <span>📍 GPS în timp real</span>
@@ -151,30 +180,16 @@
         <span>⭐ Depanatori evaluați</span>
       </div>
     </div>
-
-    <!-- Phone mockup -->
-    <div class="phone" aria-hidden="true">
-      <div class="notch"></div>
-      <div class="screen">
-        <div class="map">
-          <div class="road"></div>
-          <div class="pulse"></div>
-          <div class="pin client">🚗</div>
-          <div class="pin dep">🔧</div>
-        </div>
-        <div class="card-pop">
-          <div class="row">
-            <span class="name">Andrei • Platformă tractare</span>
-            <span class="stars">★★★★★</span>
-          </div>
-          <div class="price">87,50 RON</div>
-          <div class="eta">Ajunge în ~8 min • 4,2 km</div>
-          <div class="go">Acceptă depanatorul</div>
-        </div>
-      </div>
+    <div>
+      <svg viewBox="0 0 460 300" role="img" aria-label="Hartă cu rută animată către locația ta">
+        <path class="routeLine" d="M40 230 C 140 120, 280 300, 420 130"/>
+        <g class="pinA" style="animation-delay:.1s"><circle cx="40" cy="230" r="13" fill="#3b82f6" stroke="#fff" stroke-width="4"/><text x="40" y="235" font-size="13" text-anchor="middle">🚗</text></g>
+        <g class="pinA" style="animation-delay:.5s"><circle cx="420" cy="130" r="13" fill="#10b981" stroke="#fff" stroke-width="4"/><text x="420" y="135" font-size="13" text-anchor="middle">🏁</text></g>
+        <text class="truck">🚛</text>
+      </svg>
     </div>
-  </section>
-</div>
+  </div>
+</section>
 
 <!-- CUM FUNCTIONEAZA -->
 <div class="wrap">
