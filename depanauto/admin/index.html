@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DepanAuto - Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;min-height:100vh;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:#f0f2f5;display:flex;align-items:center;justify-content:center;z-index:100;}
+.login-box{background:#fff;border-radius:16px;padding:36px 32px;width:100%;max-width:380px;box-shadow:0 4px 24px rgba(0,0,0,0.08);}
+.login-box h1{font-size:22px;font-weight:700;color:#111;margin-bottom:4px;}
+.login-box p{font-size:14px;color:#888;margin-bottom:24px;}
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:13px;font-weight:500;color:#444;margin-bottom:6px;}
+.form-group input{width:100%;padding:11px 14px;font-size:15px;border:1px solid #ddd;border-radius:10px;outline:none;}
+.form-group input:focus{border-color:#6366f1;}
+.login-btn{width:100%;padding:13px;font-size:16px;font-weight:600;border:none;border-radius:10px;background:#6366f1;color:#fff;cursor:pointer;margin-top:8px;}
+.login-error{background:#fee2e2;color:#991b1b;padding:10px 14px;border-radius:8px;font-size:13px;display:none;margin-bottom:12px;}
+
+/* LAYOUT */
+#app{display:none;min-height:100vh;}
+#sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:#1e1e2e;display:flex;flex-direction:column;z-index:10;}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.sidebar-logo h2{font-size:16px;font-weight:700;color:#fff;}
+.sidebar-logo p{font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px;}
+.sidebar-nav{flex:1;padding:12px 10px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,0.6);font-size:14px;font-weight:500;margin-bottom:2px;border:none;background:none;width:100%;text-align:left;}
+.nav-item:hover{background:rgba(255,255,255,0.08);color:#fff;}
+.nav-item.active{background:#6366f1;color:#fff;}
+.nav-item .icon{font-size:16px;width:20px;text-align:center;}
+.sidebar-footer{padding:12px 10px;border-top:1px solid rgba(255,255,255,0.08);}
+.admin-info{padding:8px 12px;color:rgba(255,255,255,0.5);font-size:12px;}
+.logout-btn{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,0.5);font-size:14px;border:none;background:none;width:100%;}
+.logout-btn:hover{color:#fff;background:rgba(255,255,255,0.08);}
+
+#main{margin-left:220px;padding:24px;}
+.page{display:none;}
+.page.active{display:block;}
+
+/* HEADER */
+.page-header{margin-bottom:24px;}
+.page-header h1{font-size:22px;font-weight:700;color:#111;}
+.page-header p{font-size:14px;color:#888;margin-top:3px;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;}
+.stat-box{background:#fff;border-radius:12px;padding:18px;border:1px solid #e5e5e5;}
+.stat-box .val{font-size:28px;font-weight:700;color:#111;}
+.stat-box .lbl{font-size:13px;color:#888;margin-top:3px;}
+.stat-box .icon{font-size:22px;margin-bottom:8px;}
+.stat-box.purple .val{color:#6366f1;}
+.stat-box.green .val{color:#059669;}
+.stat-box.orange .val{color:#f59e0b;}
+.stat-box.red .val{color:#dc2626;}
+
+/* CARDS & TABLES */
+.card{background:#fff;border-radius:12px;border:1px solid #e5e5e5;overflow:hidden;margin-bottom:16px;}
+.card-header{padding:16px 20px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:12px;}
+.card-header h3{font-size:15px;font-weight:600;color:#111;flex:1;}
+.card-body{padding:16px 20px;}
+
+/* FILTERS */
+.filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-btn{padding:7px 14px;font-size:13px;font-weight:500;border-radius:100px;border:1px solid #e5e5e5;background:#fff;cursor:pointer;color:#666;}
+.filter-btn.active{background:#6366f1;color:#fff;border-color:#6366f1;}
+.search-input{flex:1;min-width:200px;padding:8px 14px;font-size:14px;border:1px solid #e5e5e5;border-radius:100px;outline:none;}
+.search-input:focus{border-color:#6366f1;}
+
+/* USER LIST */
+.user-list{display:flex;flex-direction:column;gap:10px;}
+.user-card{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:16px;display:flex;align-items:flex-start;gap:14px;}
+.user-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;flex-shrink:0;}
+.avatar-client{background:#dbeafe;color:#1e40af;}
+.avatar-dep{background:#d1fae5;color:#065f46;}
+.user-info{flex:1;}
+.user-name{font-size:15px;font-weight:600;color:#111;}
+.user-meta{font-size:13px;color:#888;margin-top:2px;}
+.user-details{font-size:12px;color:#999;margin-top:4px;}
+.user-badges{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:100px;}
+.badge-client{background:#dbeafe;color:#1e40af;}
+.badge-dep{background:#d1fae5;color:#065f46;}
+.badge-active{background:#d1fae5;color:#065f46;}
+.badge-pending{background:#fef3c7;color:#856404;}
+.badge-suspended{background:#fee2e2;color:#991b1b;}
+.badge-super{background:#ede9fe;color:#5b21b6;}
+.user-actions{display:flex;gap:6px;flex-direction:column;align-items:flex-end;}
+.action-btn{padding:6px 12px;font-size:12px;font-weight:600;border-radius:8px;border:none;cursor:pointer;}
+.btn-approve{background:#d1fae5;color:#065f46;}
+.btn-suspend{background:#fee2e2;color:#991b1b;}
+.btn-activate{background:#dbeafe;color:#1e40af;}
+.stars{color:#f59e0b;font-size:13px;}
+
+/* ADMINS */
+.admin-form{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;}
+.admin-form input{flex:1;min-width:150px;padding:9px 12px;font-size:14px;border:1px solid #ddd;border-radius:8px;outline:none;}
+.admin-form input:focus{border-color:#6366f1;}
+.add-btn{padding:9px 18px;font-size:14px;font-weight:600;border:none;border-radius:8px;background:#6366f1;color:#fff;cursor:pointer;}
+
+/* PAGINATION */
+.pagination{display:flex;gap:8px;justify-content:center;margin-top:16px;}
+.page-btn{padding:7px 14px;font-size:13px;border:1px solid #e5e5e5;border-radius:8px;background:#fff;cursor:pointer;}
+.page-btn.active{background:#6366f1;color:#fff;border-color:#6366f1;}
+.page-btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+#toast{position:fixed;top:20px;right:20px;background:#111;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;z-index:200;display:none;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>🔧 DepanAuto</h1>
+    <p>Panou de administrare</p>
+    <div class="login-error" id="login-error"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="a-email" placeholder="admin@exemplu.ro"></div>
+    <div class="form-group"><label>Parolă</label><input type="password" id="a-password" placeholder="Parola ta" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="login-btn" onclick="doLogin()">Intră în panou</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="sidebar">
+    <div class="sidebar-logo">
+      <h2>DepanAuto</h2>
+      <p>Panou Admin</p>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="showPage('dashboard')"><span class="icon">📊</span> Dashboard</button>
+      <button class="nav-item" onclick="showPage('clients')"><span class="icon">👥</span> Clienți</button>
+      <button class="nav-item" onclick="showPage('depanatori')"><span class="icon">🔧</span> Depanatori</button>
+      <button class="nav-item" onclick="showPage('pending')"><span class="icon">⏳</span> În așteptare</button>
+      <button class="nav-item" onclick="showPage('settings')"><span class="icon">💰</span> Tarife</button>
+      <button class="nav-item" id="nav-admins" onclick="showPage('admins')" style="display:none"><span class="icon">⚙️</span> Admini</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="admin-info" id="admin-name-display"></div>
+      <button class="logout-btn" onclick="doLogout()"><span>🚪</span> Deconectează-te</button>
+    </div>
+  </div>
+
+  <div id="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header"><h1>Dashboard</h1><p>Privire de ansamblu asupra platformei</p></div>
+      <div class="stats-grid">
+        <div class="stat-box purple"><div class="icon">👥</div><div class="val" id="s-clients">—</div><div class="lbl">Clienți</div></div>
+        <div class="stat-box green"><div class="icon">🔧</div><div class="val" id="s-deps">—</div><div class="lbl">Depanatori activi</div></div>
+        <div class="stat-box orange"><div class="icon">⏳</div><div class="val" id="s-pending">—</div><div class="lbl">Conturi în așteptare</div></div>
+        <div class="stat-box"><div class="icon">🚗</div><div class="val" id="s-requests">—</div><div class="lbl">Total curse</div></div>
+        <div class="stat-box green"><div class="icon">✅</div><div class="val" id="s-completed">—</div><div class="lbl">Curse finalizate</div></div>
+        <div class="stat-box purple"><div class="icon">💰</div><div class="val" id="s-revenue">—</div><div class="lbl">Venit total</div></div>
+        <div class="stat-box"><div class="icon">📱</div><div class="val" id="s-active">—</div><div class="lbl">Activi azi</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>⏳ Depanatori în așteptare de aprobare</h3></div>
+        <div class="card-body" id="pending-preview">Se încarcă...</div>
+      </div>
+    </div>
+
+    <!-- CLIENTI -->
+    <div id="page-clients" class="page">
+      <div class="page-header"><h1>Clienți</h1><p>Toți utilizatorii înregistrați ca clienți</p></div>
+      <div class="filters">
+        <input type="text" class="search-input" placeholder="Caută după nume, email, telefon..." oninput="searchUsers('client',this.value)">
+        <button class="filter-btn active" onclick="filterStatus('client','all',this)">Toți</button>
+        <button class="filter-btn" onclick="filterStatus('client','active',this)">Activi</button>
+        <button class="filter-btn" onclick="filterStatus('client','suspended',this)">Suspendați</button>
+      </div>
+      <div class="user-list" id="clients-list">Se încarcă...</div>
+      <div class="pagination" id="clients-pagination"></div>
+    </div>
+
+    <!-- DEPANATORI -->
+    <div id="page-depanatori" class="page">
+      <div class="page-header"><h1>Depanatori</h1><p>Toți depanatorii înregistrați</p></div>
+      <div class="filters">
+        <input type="text" class="search-input" placeholder="Caută după nume, email, telefon..." oninput="searchUsers('depanator',this.value)">
+        <button class="filter-btn active" onclick="filterStatus('depanator','all',this)">Toți</button>
+        <button class="filter-btn" onclick="filterStatus('depanator','active',this)">Activi</button>
+        <button class="filter-btn" onclick="filterStatus('depanator','pending',this)">În așteptare</button>
+        <button class="filter-btn" onclick="filterStatus('depanator','suspended',this)">Suspendați</button>
+      </div>
+      <div class="user-list" id="depanatori-list">Se încarcă...</div>
+      <div class="pagination" id="depanatori-pagination"></div>
+    </div>
+
+    <!-- PENDING -->
+    <div id="page-pending" class="page">
+      <div class="page-header"><h1>În așteptare</h1><p>Depanatori care așteaptă aprobarea contului</p></div>
+      <div class="user-list" id="pending-list">Se încarcă...</div>
+    </div>
+
+    <!-- ADMINI -->
+    <div id="page-admins" class="page">
+      <div class="page-header"><h1>Administratori</h1><p>Gestionează conturile de admin</p></div>
+      <div class="card">
+        <div class="card-header"><h3>Adaugă admin nou</h3></div>
+        <div class="card-body">
+          <div class="admin-form">
+            <input type="text" id="new-admin-name" placeholder="Nume complet">
+            <input type="email" id="new-admin-email" placeholder="Email">
+            <input type="password" id="new-admin-pass" placeholder="Parolă (min 6 caractere)">
+            <label style="display:flex;align-items:center;gap:6px;font-size:14px;white-space:nowrap">
+              <input type="checkbox" id="new-admin-super"> Super admin
+            </label>
+            <button class="add-btn" onclick="addAdmin()">Adaugă</button>
+          </div>
+        </div>
+      </div>
+      <div class="user-list" id="admins-list">Se încarcă...</div>
+    </div>
+
+
+    <!-- SETARI TARIFE -->
+    <div id="page-settings" class="page">
+      <div class="page-header"><h1>Tarife platformă</h1><p>Configurează prețurile aplicate tuturor depanatorilor</p></div>
+      <div class="card" style="max-width:480px">
+        <div class="card-header"><h3>💰 Configurare preț</h3></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="form-group">
+              <label style="display:block;font-size:13px;font-weight:500;color:#444;margin-bottom:6px">Preț per km (RON)</label>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="number" id="set-per-km" step="0.5" min="0.5" style="width:120px;padding:10px 12px;font-size:15px;border:1px solid #ddd;border-radius:8px;outline:none" oninput="previewFormula()">
+                <span style="font-size:14px;color:#888">RON / km</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label style="display:block;font-size:13px;font-weight:500;color:#444;margin-bottom:6px">Taxă fixă de pornire (RON)</label>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="number" id="set-fixed" step="1" min="0" style="width:120px;padding:10px 12px;font-size:15px;border:1px solid #ddd;border-radius:8px;outline:none" oninput="previewFormula()">
+                <span style="font-size:14px;color:#888">RON</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label style="display:block;font-size:13px;font-weight:500;color:#444;margin-bottom:6px">Minim per cursă (RON)</label>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="number" id="set-min" step="5" min="0" style="width:120px;padding:10px 12px;font-size:15px;border:1px solid #ddd;border-radius:8px;outline:none" oninput="previewFormula()">
+                <span style="font-size:14px;color:#888">RON</span>
+              </div>
+            </div>
+            <div style="background:#f8faff;border-radius:10px;padding:14px;font-size:14px;color:#444;line-height:1.8">
+              <strong>Formula:</strong> max(minim, taxă fixă + km × preț/km)<br>
+              <span style="color:#6366f1;font-weight:500" id="formula-example"></span>
+            </div>
+            <button onclick="saveAdminSettings()" style="padding:13px;font-size:15px;font-weight:600;border:none;border-radius:10px;background:#6366f1;color:#fff;cursor:pointer">Salvează tarifele</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API_BASE = 'https://wsdlogistics.ro/depanauto/api';
+let adminToken = localStorage.getItem('depanauto_admin_token');
+let isSuper = false;
+let currentFilters = { client: 'all', depanator: 'all' };
+let searchTimers = {};
+
+function toast(msg, dur=3000) {
+    const el=document.getElementById('toast');
+    el.textContent=msg; el.style.display='block';
+    setTimeout(()=>el.style.display='none',dur);
+}
+
+async function doLogin() {
+    const email=document.getElementById('a-email').value.trim();
+    const password=document.getElementById('a-password').value;
+    if(!email||!password){showLoginError('Completează toate câmpurile');return;}
+    try {
+        const res=await fetch(API_BASE+'/admin.php',{method:'POST',body:new URLSearchParams({action:'login',email,password})});
+        const data=await res.json();
+        if(data.success){
+            localStorage.setItem('depanauto_admin_token',data.token);
+            localStorage.setItem('depanauto_admin_name',data.name);
+            adminToken=data.token;
+            isSuper=data.is_super;
+            document.getElementById('login-screen').style.display='none';
+            document.getElementById('app').style.display='block';
+            document.getElementById('admin-name-display').textContent=data.name;
+            if(isSuper) document.getElementById('nav-admins').style.display='flex';
+            initApp();
+        } else { showLoginError(data.error); }
+    } catch(e){showLoginError('Eroare conexiune la server');}
+}
+
+function showLoginError(msg){const el=document.getElementById('login-error');el.textContent=msg;el.style.display='block';}
+
+async function doLogout(){
+    await fetch(API_BASE+'/admin.php',{method:'POST',body:new URLSearchParams({action:'logout',admin_token:adminToken})});
+    localStorage.removeItem('depanauto_admin_token');
+    localStorage.removeItem('depanauto_admin_name');
+    location.reload();
+}
+
+async function initApp(){
+    await loadStats();
+    await loadUsers('client',1);
+    await loadUsers('depanator',1);
+    await loadPending();
+    if(isSuper) await loadAdmins();
+    await loadAdminSettings();
+}
+
+async function loadStats(){
+    try{
+        const res=await fetch(API_BASE+'/admin.php?action=get_stats&admin_token='+adminToken);
+        const data=await res.json();
+        if(!data.success)return;
+        const s=data.stats;
+        document.getElementById('s-clients').textContent=s.total_clients;
+        document.getElementById('s-deps').textContent=s.total_depanatori;
+        document.getElementById('s-pending').textContent=s.pending_depanatori;
+        document.getElementById('s-requests').textContent=s.total_requests;
+        document.getElementById('s-completed').textContent=s.completed_requests;
+        document.getElementById('s-revenue').textContent=parseFloat(s.total_revenue).toFixed(0)+' RON';
+        document.getElementById('s-active').textContent=s.active_today;
+    }catch(e){}
+}
+
+async function loadUsers(role, page=1){
+    const status=currentFilters[role]||'all';
+    const search=document.querySelector(`#page-${role==='client'?'clients':'depanatori'} .search-input`)?.value||'';
+    try{
+        const res=await fetch(`${API_BASE}/admin.php?action=get_users&admin_token=${adminToken}&role=${role}&status=${status}&page=${page}&search=${encodeURIComponent(search)}`);
+        const data=await res.json();
+        if(!data.success)return;
+        const listId=role==='client'?'clients-list':'depanatori-list';
+        const pagId=role==='client'?'clients-pagination':'depanatori-pagination';
+        document.getElementById(listId).innerHTML=data.users.length?data.users.map(u=>userCard(u)).join(''):'<p style="color:#aaa;text-align:center;padding:20px">Niciun utilizator găsit</p>';
+        renderPagination(pagId, data.total, page, 20, (p)=>loadUsers(role,p));
+    }catch(e){}
+}
+
+async function loadPending(){
+    try{
+        const res=await fetch(`${API_BASE}/admin.php?action=get_users&admin_token=${adminToken}&role=depanator&status=pending&page=1`);
+        const data=await res.json();
+        if(!data.success)return;
+        const html=data.users.length?data.users.map(u=>userCard(u)).join(''):'<p style="color:#aaa;text-align:center;padding:20px">Nu există conturi în așteptare 🎉</p>';
+        document.getElementById('pending-list').innerHTML=html;
+        document.getElementById('pending-preview').innerHTML=data.users.length?data.users.slice(0,3).map(u=>userCard(u)).join('')+'<p style="color:#aaa;font-size:13px;margin-top:8px">Mergi la "În așteptare" pentru lista completă.</p>':'<p style="color:#aaa">Nu există conturi în așteptare 🎉</p>';
+    }catch(e){}
+}
+
+async function loadAdmins(){
+    try{
+        const res=await fetch(`${API_BASE}/admin.php?action=get_admins&admin_token=${adminToken}`);
+        const data=await res.json();
+        if(!data.success)return;
+        document.getElementById('admins-list').innerHTML=data.admins.map(a=>`
+        <div class="user-card">
+          <div class="user-avatar" style="background:#ede9fe;color:#5b21b6">${a.name.charAt(0).toUpperCase()}</div>
+          <div class="user-info">
+            <div class="user-name">${a.name}</div>
+            <div class="user-meta">${a.email}</div>
+            <div class="user-details">Ultima autentificare: ${a.last_login?formatDate(a.last_login):'Niciodată'}</div>
+            <div class="user-badges">
+              ${a.is_super?'<span class="badge badge-super">Super Admin</span>':'<span class="badge badge-active">Admin</span>'}
+            </div>
+          </div>
+          <div class="user-actions">
+            ${!a.is_super?`<button class="action-btn btn-suspend" onclick="deleteAdmin(${a.id})">Șterge</button>`:''}
+          </div>
+        </div>`).join('');
+    }catch(e){}
+}
+
+function userCard(u){
+    const isClient=u.role==='client';
+    const initial=(u.name||'?').charAt(0).toUpperCase();
+    const carInfo=isClient?(u.car_brand?`${u.car_brand} ${u.car_model||''} (${u.car_plate||'—'})`:'Mașină necompletată'):(u.vehicle_plate?`${u.vehicle_type||''} ${u.vehicle_brand||''} • ${u.vehicle_plate}`:'Vehicul necompletat');
+    const licenseInfo=!isClient&&u.license_number?`<br>Licență: ${u.license_number}`:'';
+    const ratingInfo=!isClient&&u.rating?`<span class="stars">${'⭐'.repeat(Math.round(u.rating))}</span> ${parseFloat(u.rating).toFixed(1)} (${u.total_jobs} curse)`:'';
+    const lastSeen=u.last_seen?formatDate(u.last_seen):'Niciodată';
+
+    let actions='';
+    if(u.status==='pending'){
+        actions+=`<button class="action-btn btn-approve" onclick="updateStatus('${u.token}','active')">✅ Aprobă</button>`;
+        actions+=`<button class="action-btn btn-suspend" onclick="updateStatus('${u.token}','suspended')">❌ Respinge</button>`;
+    } else if(u.status==='active'){
+        actions+=`<button class="action-btn btn-suspend" onclick="updateStatus('${u.token}','suspended')">Suspendă</button>`;
+    } else if(u.status==='suspended'){
+        actions+=`<button class="action-btn btn-activate" onclick="updateStatus('${u.token}','active')">Activează</button>`;
+    }
+
+    return `<div class="user-card">
+      <div class="user-avatar ${isClient?'avatar-client':'avatar-dep'}">${initial}</div>
+      <div class="user-info">
+        <div class="user-name">${u.name||'—'}</div>
+        <div class="user-meta">${u.email||'—'} ${u.phone?'• '+u.phone:''}</div>
+        <div class="user-details">${carInfo}${licenseInfo}<br>Ultima activitate: ${lastSeen}</div>
+        <div class="user-badges">
+          <span class="badge ${isClient?'badge-client':'badge-dep'}">${isClient?'Client':'Depanator'}</span>
+          <span class="badge badge-${u.status||'active'}">${{active:'Activ',pending:'În așteptare',suspended:'Suspendat'}[u.status||'active']}</span>
+          ${ratingInfo?`<span>${ratingInfo}</span>`:''}
+        </div>
+      </div>
+      <div class="user-actions">${actions}</div>
+    </div>`;
+}
+
+async function updateStatus(userToken, status){
+    try{
+        const res=await fetch(API_BASE+'/admin.php',{method:'POST',body:new URLSearchParams({action:'update_user_status',admin_token:adminToken,user_token:userToken,status})});
+        const data=await res.json();
+        if(data.success){
+            toast(status==='active'?'✅ Cont aprobat!':status==='suspended'?'Cont suspendat':'Status actualizat');
+            await loadStats();
+            await loadUsers('client',1);
+            await loadUsers('depanator',1);
+            await loadPending();
+        }
+    }catch(e){toast('Eroare');}
+}
+
+async function addAdmin(){
+    const name=document.getElementById('new-admin-name').value.trim();
+    const email=document.getElementById('new-admin-email').value.trim();
+    const pass=document.getElementById('new-admin-pass').value;
+    const isS=document.getElementById('new-admin-super').checked?1:0;
+    if(!name||!email||!pass){toast('Completează toate câmpurile');return;}
+    try{
+        const res=await fetch(API_BASE+'/admin.php',{method:'POST',body:new URLSearchParams({action:'add_admin',admin_token:adminToken,name,email,password:pass,is_super:isS})});
+        const data=await res.json();
+        if(data.success){toast('Admin adăugat!');['new-admin-name','new-admin-email','new-admin-pass'].forEach(id=>document.getElementById(id).value='');await loadAdmins();}
+        else{toast('Eroare: '+data.error);}
+    }catch(e){toast('Eroare');}
+}
+
+async function deleteAdmin(id){
+    if(!confirm('Ești sigur că vrei să ștergi acest admin?'))return;
+    try{
+        const res=await fetch(API_BASE+'/admin.php',{method:'POST',body:new URLSearchParams({action:'delete_admin',admin_token:adminToken,admin_id:id})});
+        const data=await res.json();
+        if(data.success){toast('Admin șters');await loadAdmins();}
+    }catch(e){}
+}
+
+function filterStatus(role, status, btn){
+    currentFilters[role]=status;
+    const container=btn.closest('.filters');
+    container.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    loadUsers(role,1);
+}
+
+function searchUsers(role, val){
+    clearTimeout(searchTimers[role]);
+    searchTimers[role]=setTimeout(()=>loadUsers(role,1),400);
+}
+
+function renderPagination(containerId, total, currentPage, limit, callback){
+    const totalPages=Math.ceil(total/limit);
+    if(totalPages<=1){document.getElementById(containerId).innerHTML='';return;}
+    let html='';
+    if(currentPage>1) html+=`<button class="page-btn" onclick="(${callback.toString()})(${currentPage-1})">←</button>`;
+    for(let i=Math.max(1,currentPage-2);i<=Math.min(totalPages,currentPage+2);i++){
+        html+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="(${callback.toString()})(${i})">${i}</button>`;
+    }
+    if(currentPage<totalPages) html+=`<button class="page-btn" onclick="(${callback.toString()})(${currentPage+1})">→</button>`;
+    document.getElementById(containerId).innerHTML=html;
+}
+
+function showPage(name){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.getElementById('page-'+name).classList.add('active');
+    event.currentTarget.classList.add('active');
+}
+
+function formatDate(str){
+    if(!str)return'—';
+    const d=new Date(str);
+    return d.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+}
+
+
+async function loadAdminSettings(){
+    try{
+        const res=await fetch(API_BASE+'/get_status.php?token=dummy&admin_token='+adminToken);
+        // Folosim endpoint-ul existent de settings
+        const r2=await fetch(API_BASE+'/admin.php?action=get_settings&admin_token='+adminToken);
+        const data=await r2.json();
+        if(data.success&&data.settings){
+            document.getElementById('set-per-km').value=data.settings.price_per_km||4.5;
+            document.getElementById('set-fixed').value=data.settings.price_fixed||10;
+            document.getElementById('set-min').value=data.settings.price_min||25;
+            previewFormula();
+        }
+    }catch(e){}
+}
+
+function previewFormula(){
+    const pk=parseFloat(document.getElementById('set-per-km').value)||4.5;
+    const fx=parseFloat(document.getElementById('set-fixed').value)||10;
+    const mn=parseFloat(document.getElementById('set-min').value)||25;
+    const ex5=Math.max(mn, fx+5*pk);
+    const ex10=Math.max(mn, fx+10*pk);
+    document.getElementById('formula-example').textContent=
+        'ex: 5 km → '+ex5.toFixed(2)+' RON | 10 km → '+ex10.toFixed(2)+' RON';
+}
+
+async function saveAdminSettings(){
+    const perKm=document.getElementById('set-per-km').value;
+    const fixed=document.getElementById('set-fixed').value;
+    const min=document.getElementById('set-min').value;
+    try{
+        const res=await fetch(API_BASE+'/admin.php',{method:'POST',body:new URLSearchParams({
+            action:'update_settings',admin_token:adminToken,
+            price_per_km:perKm,price_fixed:fixed,price_min:min
+        })});
+        const data=await res.json();
+        if(data.success){toast('✅ Tarife salvate!');}
+        else{toast('Eroare: '+data.error);}
+    }catch(e){toast('Eroare');}
+}
+
+window.addEventListener('load',()=>{
+    if(adminToken){
+        const name=localStorage.getItem('depanauto_admin_name')||'Admin';
+        document.getElementById('login-screen').style.display='none';
+        document.getElementById('app').style.display='block';
+        document.getElementById('admin-name-display').textContent=name;
+        // Verifica daca tokenul e inca valid
+        fetch(API_BASE+'/admin.php?action=get_stats&admin_token='+adminToken)
+            .then(r=>r.json()).then(d=>{
+                if(!d.success){localStorage.removeItem('depanauto_admin_token');location.reload();}
+                else{initApp();}
+            }).catch(()=>{});
+    }
+});
+</script>
+</body>
+</html>

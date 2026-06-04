@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DepanAuto - Istoric curse</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; min-height: 100dvh; }
+#header { background: #fff; border-bottom: 1px solid #e5e5e5; padding: 12px 16px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 10; }
+#header h1 { font-size: 17px; font-weight: 600; color: #111; flex: 1; }
+.back-btn { background: none; border: none; font-size: 22px; cursor: pointer; padding: 0 4px; color: #666; }
+#stats-bar { display: flex; gap: 12px; padding: 16px; }
+.stat-card { flex: 1; background: #fff; border-radius: 12px; padding: 14px; border: 1px solid #e5e5e5; }
+.stat-card .val { font-size: 22px; font-weight: 700; color: #111; }
+.stat-card .lbl { font-size: 12px; color: #888; margin-top: 2px; }
+#list { padding: 0 16px 24px; display: flex; flex-direction: column; gap: 10px; }
+.curse-card { background: #fff; border-radius: 14px; border: 1px solid #e5e5e5; overflow: hidden; }
+.curse-header { padding: 14px 16px 10px; display: flex; justify-content: space-between; align-items: flex-start; }
+.curse-date { font-size: 13px; color: #888; }
+.curse-status { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 100px; }
+.s-completed { background: #d1fae5; color: #065f46; }
+.s-cancelled { background: #fee2e2; color: #991b1b; }
+.s-waiting { background: #fef3c7; color: #856404; }
+.s-accepted { background: #dbeafe; color: #1e40af; }
+.curse-body { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 8px; }
+.curse-row { display: flex; justify-content: space-between; align-items: baseline; }
+.curse-label { font-size: 13px; color: #666; }
+.curse-value { font-size: 13px; font-weight: 500; color: #111; }
+.curse-value.price { font-size: 18px; font-weight: 700; color: #1d4ed8; }
+.curse-value.earn { font-size: 18px; font-weight: 700; color: #059669; }
+.curse-divider { height: 1px; background: #f5f5f5; margin: 4px 0; }
+.curse-footer { padding: 10px 16px 14px; display: flex; gap: 8px; }
+.btn-bon { flex: 1; padding: 10px; font-size: 14px; font-weight: 600; border: 1.5px solid #1d4ed8; border-radius: 10px; background: #fff; color: #1d4ed8; cursor: pointer; }
+.btn-rating { flex: 1; padding: 10px; font-size: 14px; font-weight: 600; border: 1.5px solid #f59e0b; border-radius: 10px; background: #fff; color: #b45309; cursor: pointer; }
+.btn-rating.rated { border-color: #e5e5e5; color: #999; pointer-events: none; }
+.stars-display { color: #f59e0b; font-size: 16px; letter-spacing: 1px; }
+#empty-state { text-align: center; padding: 60px 24px; color: #aaa; }
+#empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+#loading { text-align: center; padding: 40px; color: #aaa; }
+
+/* BON MODAL */
+#bon-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
+#bon-modal.open { display: flex; }
+#bon-inner { background: #fff; width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; max-height: 90dvh; overflow-y: auto; }
+#bon-content { padding: 24px; }
+.bon-header { text-align: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px dashed #e5e5e5; }
+.bon-title { font-size: 20px; font-weight: 700; color: #111; }
+.bon-subtitle { font-size: 13px; color: #888; margin-top: 2px; }
+.bon-section { margin-bottom: 16px; }
+.bon-section-title { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.bon-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.bon-key { font-size: 13px; color: #666; }
+.bon-val { font-size: 13px; font-weight: 500; color: #111; text-align: right; max-width: 60%; }
+.bon-total { background: #f8faff; border-radius: 10px; padding: 14px; margin: 16px 0; display: flex; justify-content: space-between; align-items: center; }
+.bon-total-label { font-size: 15px; font-weight: 600; color: #444; }
+.bon-total-val { font-size: 24px; font-weight: 700; color: #1d4ed8; }
+.bon-footer { text-align: center; padding-top: 16px; border-top: 2px dashed #e5e5e5; font-size: 12px; color: #aaa; line-height: 1.6; }
+.bon-actions { display: flex; gap: 10px; padding: 0 24px 24px; }
+.bon-btn { flex: 1; padding: 13px; font-size: 15px; font-weight: 600; border-radius: 12px; border: none; cursor: pointer; }
+.bon-btn-download { background: #1d4ed8; color: #fff; }
+.bon-btn-close { background: #f5f5f5; color: #333; }
+
+/* RATING MODAL */
+#rating-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: none; align-items: center; justify-content: center; padding: 24px; }
+#rating-modal.open { display: flex; }
+#rating-inner { background: #fff; width: 100%; max-width: 360px; border-radius: 20px; padding: 28px 24px; text-align: center; }
+#rating-inner h3 { font-size: 18px; font-weight: 700; color: #111; margin-bottom: 6px; }
+#rating-inner p { font-size: 14px; color: #666; margin-bottom: 24px; }
+.stars-picker { display: flex; justify-content: center; gap: 12px; margin-bottom: 24px; }
+.star-btn { font-size: 36px; cursor: pointer; transition: transform 0.1s; opacity: 0.3; border: none; background: none; padding: 0; }
+.star-btn.active { opacity: 1; transform: scale(1.15); }
+.star-btn:hover { opacity: 0.8; }
+.rating-submit { width: 100%; padding: 14px; font-size: 16px; font-weight: 600; border: none; border-radius: 12px; background: #f59e0b; color: #fff; cursor: pointer; margin-bottom: 10px; }
+.rating-submit:disabled { background: #e5e5e5; color: #999; cursor: not-allowed; }
+.rating-cancel { width: 100%; padding: 12px; font-size: 15px; font-weight: 500; border: none; border-radius: 12px; background: #f5f5f5; color: #666; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <button class="back-btn" onclick="goBack()">←</button>
+  <h1>Istoricul curselor</h1>
+</div>
+
+<div id="stats-bar" style="display:none">
+  <div class="stat-card"><div class="val" id="stat-total">0</div><div class="lbl">Curse finalizate</div></div>
+  <div class="stat-card"><div class="val" id="stat-money">0 RON</div><div class="lbl" id="stat-money-label">Total</div></div>
+</div>
+
+<div id="loading">Se încarcă...</div>
+<div id="list"></div>
+<div id="empty-state" style="display:none"><div class="icon">🚗</div><p>Nu ai nicio cursă înregistrată încă.</p></div>
+
+<!-- BON MODAL -->
+<div id="bon-modal">
+  <div id="bon-inner">
+    <div id="bon-content"></div>
+    <div class="bon-actions">
+      <button class="bon-btn bon-btn-download" onclick="downloadBon()">📄 Descarcă PDF</button>
+      <button class="bon-btn bon-btn-close" onclick="closeBon()">Închide</button>
+    </div>
+  </div>
+</div>
+
+<!-- RATING MODAL -->
+<div id="rating-modal">
+  <div id="rating-inner">
+    <h3>Evaluează depanatorul</h3>
+    <p id="rating-dep-name">Cum a fost intervenția?</p>
+    <div class="stars-picker">
+      <button class="star-btn" onclick="selectStar(1)">⭐</button>
+      <button class="star-btn" onclick="selectStar(2)">⭐</button>
+      <button class="star-btn" onclick="selectStar(3)">⭐</button>
+      <button class="star-btn" onclick="selectStar(4)">⭐</button>
+      <button class="star-btn" onclick="selectStar(5)">⭐</button>
+    </div>
+    <button class="rating-submit" id="rating-submit-btn" onclick="submitRating()" disabled>Trimite evaluarea</button>
+    <button class="rating-cancel" onclick="closeRating()">Anulează</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const API_BASE = 'https://wsdlogistics.ro/depanauto/api';
+let currentBonData = null;
+let currentRatingData = null;
+let selectedStars = 0;
+let userRole = 'client';
+
+function goBack() {
+    const isClient = !!localStorage.getItem('depanauto_client_token');
+    window.location.href = '/depanauto/' + (isClient ? 'client' : 'depanator') + '/';
+}
+
+function getToken() {
+    return localStorage.getItem('depanauto_client_token') || localStorage.getItem('depanauto_dep_token');
+}
+
+function statusLabel(s) {
+    return {completed:'Finalizată',cancelled:'Anulată',waiting:'În așteptare',accepted:'Acceptată'}[s]||s;
+}
+
+function formatDate(str) {
+    if (!str) return '—';
+    const d = new Date(str);
+    return d.toLocaleDateString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+}
+
+function formatDuration(start, end) {
+    if (!start||!end) return '—';
+    const min = Math.round((new Date(end)-new Date(start))/60000);
+    return min < 60 ? min+' minute' : Math.floor(min/60)+'h '+(min%60)+'min';
+}
+
+function starsHtml(n) {
+    return '⭐'.repeat(n) + '☆'.repeat(5-n);
+}
+
+async function loadHistory() {
+    const token = getToken();
+    if (!token) { window.location.href = '/depanauto/client/'; return; }
+    try {
+        const res = await fetch(API_BASE+'/history.php?token='+token);
+        const data = await res.json();
+        document.getElementById('loading').style.display='none';
+        if (!data.success) return;
+        userRole = data.role;
+        document.getElementById('stats-bar').style.display='flex';
+        document.getElementById('stat-total').textContent = data.stats?.total||0;
+        if (data.role==='client') {
+            document.getElementById('stat-money').textContent=(parseFloat(data.stats?.total_spent)||0).toFixed(2)+' RON';
+            document.getElementById('stat-money-label').textContent='Total plătit';
+        } else {
+            document.getElementById('stat-money').textContent=(parseFloat(data.stats?.total_earned)||0).toFixed(2)+' RON';
+            document.getElementById('stat-money-label').textContent='Total câștigat';
+        }
+        if (!data.history||data.history.length===0) { document.getElementById('empty-state').style.display='block'; return; }
+        const list = document.getElementById('list');
+        data.history.forEach(c => { list.innerHTML += buildCard(c, data.role); });
+    } catch(e) { document.getElementById('loading').textContent='Eroare la încărcare.'; }
+}
+
+function buildCard(c, role) {
+    const otherName = role==='client' ? (c.depanator_name||'—') : (c.client_name||'—');
+    const vehicleInfo = role==='client' ? (c.vehicle_brand ? c.vehicle_type+' '+c.vehicle_brand : '—') : (c.car_brand ? c.car_brand+' '+(c.car_model||'') : '—');
+    const vehicleLabel = role==='client' ? 'Vehicul depanator' : 'Mașina clientului';
+    const priceClass = role==='client' ? 'price' : 'earn';
+    const cStr = JSON.stringify(c).replace(/\\/g,'\\\\').replace(/"/g,'&quot;');
+
+    let footer = '';
+    if (c.status === 'completed') {
+        const bonBtn = `<button class="btn-bon" onclick='showBon(${JSON.stringify(c).replace(/'/g,"&#39;")},"${role}")'>📄 Bon</button>`;
+        let ratingBtn = '';
+        if (role === 'client') {
+            if (c.my_rating) {
+                ratingBtn = `<button class="btn-rating rated">${starsHtml(c.my_rating)}</button>`;
+            } else {
+                ratingBtn = `<button class="btn-rating" onclick='openRating(${c.id},"${c.depanator_name||'Depanator'}","${c.depanator_token||''}")'>⭐ Evaluează</button>`;
+            }
+        }
+        footer = `<div class="curse-footer">${bonBtn}${ratingBtn}</div>`;
+    }
+
+    // Rating depanator (vizibil pentru depanator)
+    let ratingRow = '';
+    if (role === 'depanator' && c.my_rating) {
+        ratingRow = `<div class="curse-row"><span class="curse-label">Rating primit</span><span class="curse-value">${starsHtml(c.my_rating)}</span></div>`;
+    }
+
+    return `<div class="curse-card">
+      <div class="curse-header">
+        <div><div style="font-size:14px;font-weight:600;color:#111;margin-bottom:3px">${otherName}</div><div class="curse-date">${formatDate(c.created_at)}</div></div>
+        <span class="curse-status s-${c.status}">${statusLabel(c.status)}</span>
+      </div>
+      <div class="curse-body">
+        <div class="curse-row"><span class="curse-label">${vehicleLabel}</span><span class="curse-value">${vehicleInfo}</span></div>
+        <div class="curse-row"><span class="curse-label">Distanță</span><span class="curse-value">${c.distance_km ? parseFloat(c.distance_km).toFixed(1)+' km' : '—'}</span></div>
+        <div class="curse-row"><span class="curse-label">Durată</span><span class="curse-value">${formatDuration(c.accepted_at,c.completed_at)}</span></div>
+        ${ratingRow}
+        <div class="curse-divider"></div>
+        <div class="curse-row"><span class="curse-label">${role==='client'?'Cost':'Câștig'}</span><span class="curse-value ${priceClass}">${c.price_ron ? parseFloat(c.price_ron).toFixed(2)+' RON' : '—'}</span></div>
+      </div>
+      ${footer}
+    </div>`;
+}
+
+// RATING
+function openRating(requestId, depName, depToken) {
+    currentRatingData = { requestId, depName, depToken };
+    selectedStars = 0;
+    document.getElementById('rating-dep-name').textContent = depName;
+    document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('rating-submit-btn').disabled = true;
+    document.getElementById('rating-modal').className = 'open';
+}
+
+function selectStar(n) {
+    selectedStars = n;
+    document.querySelectorAll('.star-btn').forEach((b,i) => b.classList.toggle('active', i < n));
+    document.getElementById('rating-submit-btn').disabled = false;
+}
+
+async function submitRating() {
+    if (!currentRatingData || selectedStars === 0) return;
+    const token = getToken();
+    const btn = document.getElementById('rating-submit-btn');
+    btn.disabled = true; btn.textContent = 'Se trimite...';
+    try {
+        const res = await fetch(API_BASE+'/rating.php', {
+            method: 'POST',
+            body: new URLSearchParams({ token, request_id: currentRatingData.requestId, stars: selectedStars })
+        });
+        const data = await res.json();
+        if (data.success) {
+            closeRating();
+            // Reincarca lista
+            document.getElementById('list').innerHTML = '';
+            document.getElementById('loading').style.display = 'block';
+            loadHistory();
+        } else {
+            alert('Eroare: ' + data.error);
+            btn.disabled = false; btn.textContent = 'Trimite evaluarea';
+        }
+    } catch(e) { btn.disabled = false; btn.textContent = 'Trimite evaluarea'; }
+}
+
+function closeRating() { document.getElementById('rating-modal').className = ''; }
+
+// BON
+function showBon(c, role) {
+    currentBonData = {c, role};
+    const otherName = role==='client' ? (c.depanator_name||'—') : (c.client_name||'—');
+    const otherPhone = role==='client' ? (c.depanator_phone||'—') : (c.client_phone||'—');
+    const carInfo = role==='client' ? (c.vehicle_brand ? c.vehicle_type+' '+c.vehicle_brand : '—') : (c.car_brand ? c.car_brand+' '+(c.car_model||'') : '—');
+    const carPlate = role==='client' ? (c.vehicle_plate||'—') : (c.car_plate||'—');
+    const bonNum = 'DA-'+String(c.id).padStart(6,'0');
+    const ratingHtml = c.my_rating ? `<div class="bon-row"><span class="bon-key">Evaluare</span><span class="bon-val">${starsHtml(c.my_rating)}</span></div>` : '';
+    document.getElementById('bon-content').innerHTML = `
+    <div class="bon-header"><div style="font-size:32px">🔧</div><div class="bon-title">DepanAuto</div><div class="bon-subtitle">Bon intervenție nr. ${bonNum}</div></div>
+    <div class="bon-section"><div class="bon-section-title">Detalii intervenție</div>
+      <div class="bon-row"><span class="bon-key">Data</span><span class="bon-val">${formatDate(c.created_at)}</span></div>
+      <div class="bon-row"><span class="bon-key">Finalizat</span><span class="bon-val">${formatDate(c.completed_at)}</span></div>
+      <div class="bon-row"><span class="bon-key">Durată</span><span class="bon-val">${formatDuration(c.accepted_at,c.completed_at)}</span></div>
+      <div class="bon-row"><span class="bon-key">Distanță deplasare</span><span class="bon-val">${c.distance_km ? parseFloat(c.distance_km).toFixed(1)+' km' : '—'}</span></div>
+      ${ratingHtml}
+    </div>
+    <div class="bon-section"><div class="bon-section-title">${role==='client'?'Depanator':'Client'}</div>
+      <div class="bon-row"><span class="bon-key">Nume</span><span class="bon-val">${otherName}</span></div>
+      <div class="bon-row"><span class="bon-key">Telefon</span><span class="bon-val">${otherPhone}</span></div>
+      <div class="bon-row"><span class="bon-key">Vehicul</span><span class="bon-val">${carInfo}</span></div>
+      <div class="bon-row"><span class="bon-key">Nr. înmatriculare</span><span class="bon-val">${carPlate}</span></div>
+    </div>
+    <div class="bon-total"><span class="bon-total-label">Total intervenție</span><span class="bon-total-val">${parseFloat(c.price_ron).toFixed(2)} RON</span></div>
+    <div class="bon-footer">DepanAuto • wsdlogistics.ro<br>Bon generat automat • ${new Date().toLocaleDateString('ro-RO')}</div>`;
+    document.getElementById('bon-modal').className='open';
+}
+
+function closeBon() { document.getElementById('bon-modal').className=''; }
+
+function downloadBon() {
+    if (!currentBonData) return;
+    const {c, role} = currentBonData;
+    const {jsPDF} = window.jspdf;
+    const doc = new jsPDF({format:'a5',unit:'mm'});
+    const bonNum = 'DA-'+String(c.id).padStart(6,'0');
+    const otherName = role==='client' ? (c.depanator_name||'—') : (c.client_name||'—');
+    const otherPhone = role==='client' ? (c.depanator_phone||'—') : (c.client_phone||'—');
+    const carInfo = role==='client' ? (c.vehicle_brand ? c.vehicle_type+' '+c.vehicle_brand : '—') : (c.car_brand ? c.car_brand+' '+(c.car_model||'') : '—');
+    const carPlate = role==='client' ? (c.vehicle_plate||'—') : (c.car_plate||'—');
+    let y=20; const lm=15, rm=133;
+    doc.setFontSize(20); doc.setFont('helvetica','bold'); doc.text('DepanAuto',74,y,{align:'center'}); y+=7;
+    doc.setFontSize(11); doc.setFont('helvetica','normal'); doc.text('Bon interventie nr. '+bonNum,74,y,{align:'center'}); y+=12;
+    doc.setDrawColor(200); doc.setLineDashPattern([2,2],0); doc.line(lm,y,rm,y); y+=8; doc.setLineDashPattern([],0);
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(150); doc.text('DETALII INTERVENTIE',lm,y); y+=6;
+    doc.setFont('helvetica','normal'); doc.setTextColor(0);
+    [['Data',formatDate(c.created_at)],['Finalizat',formatDate(c.completed_at)],['Durata',formatDuration(c.accepted_at,c.completed_at)],['Distanta',c.distance_km?parseFloat(c.distance_km).toFixed(1)+' km':'—']].forEach(([k,v])=>{
+        doc.setFontSize(10); doc.setTextColor(100); doc.text(k,lm,y); doc.setTextColor(0); doc.setFont('helvetica','bold'); doc.text(v,rm,y,{align:'right'}); doc.setFont('helvetica','normal'); y+=6;
+    });
+    if (c.my_rating) { doc.setFontSize(10); doc.setTextColor(100); doc.text('Evaluare',lm,y); doc.setTextColor(0); doc.setFont('helvetica','bold'); doc.text('★'.repeat(c.my_rating)+'☆'.repeat(5-c.my_rating),rm,y,{align:'right'}); doc.setFont('helvetica','normal'); y+=6; }
+    y+=4;
+    doc.setDrawColor(220); doc.line(lm,y,rm,y); y+=8;
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(150); doc.text(role==='client'?'DEPANATOR':'CLIENT',lm,y); y+=6;
+    doc.setFont('helvetica','normal'); doc.setTextColor(0);
+    [['Nume',otherName],['Telefon',otherPhone],['Vehicul',carInfo],['Nr. inmatriculare',carPlate]].forEach(([k,v])=>{
+        doc.setFontSize(10); doc.setTextColor(100); doc.text(k,lm,y); doc.setTextColor(0); doc.setFont('helvetica','bold'); doc.text(v,rm,y,{align:'right'}); doc.setFont('helvetica','normal'); y+=6;
+    }); y+=6;
+    doc.setFillColor(240,245,255); doc.roundedRect(lm,y,rm-lm,16,3,3,'F');
+    doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(50); doc.text('Total interventie',lm+4,y+10);
+    doc.setFontSize(16); doc.setTextColor(29,78,216); doc.text(parseFloat(c.price_ron).toFixed(2)+' RON',rm-4,y+10,{align:'right'}); y+=24;
+    doc.setDrawColor(200); doc.setLineDashPattern([2,2],0); doc.line(lm,y,rm,y); y+=6; doc.setLineDashPattern([],0);
+    doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(150);
+    doc.text('DepanAuto • wsdlogistics.ro',74,y,{align:'center'}); y+=5;
+    doc.text('Bon generat automat • '+new Date().toLocaleDateString('ro-RO'),74,y,{align:'center'});
+    doc.save('bon-'+bonNum+'.pdf');
+}
+
+window.addEventListener('load', loadHistory);
+</script>
+</body>
+</html>

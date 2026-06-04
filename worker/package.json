@@ -1,0 +1,19 @@
+{
+  "name": "depanauto-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DepanAuto backend pe Cloudflare Workers + D1 (port al backend-ului PHP).",
+  "scripts": {
+    "test": "node test/smoke.mjs",
+    "build": "bash build.sh",
+    "predeploy": "bash build.sh",
+    "deploy": "wrangler deploy",
+    "dev": "bash build.sh && wrangler dev",
+    "db:init": "wrangler d1 execute depanauto --remote --file=./schema.sql",
+    "hash": "node scripts/hash-password.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

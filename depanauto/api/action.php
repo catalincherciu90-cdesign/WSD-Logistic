@@ -1,0 +1,129 @@
+<?php
+// api/action.php
+require_once 'config.php';
+require_once 'send_notification.php';
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') jsonError('Metoda nepermisa', 405);
+
+$token = getToken();
+$action = $_POST['action'] ?? '';
+
+$db = getDB();
+
+$stmt = $db->prepare("SELECT * FROM users WHERE token = ?");
+$stmt->execute([$token]);
+$user = $stmt->fetch();
+if (!$user) jsonError('Token negasit');
+
+switch ($action) {
+
+    case 'accept_request':
+        if ($user['role'] !== 'depanator') jsonError('Doar depanatorii pot accepta cereri');
+
+        $requestId = (int)($_POST['request_id'] ?? 0);
+        $depLat = filter_var($_POST['dep_lat'] ?? '', FILTER_VALIDATE_FLOAT);
+        $depLng = filter_var($_POST['dep_lng'] ?? '', FILTER_VALIDATE_FLOAT);
+
+        $stmt = $db->prepare("SELECT * FROM requests WHERE id = ? AND status = 'waiting'");
+        $stmt->execute([$requestId]);
+        $request = $stmt->fetch();
+        if (!$request) jsonError('Cerere negasita sau deja acceptata');
+
+        $useLat = ($depLat !== false && $depLat != 0) ? $depLat : $user['lat'];
+        $useLng = ($depLng !== false && $depLng != 0) ? $depLng : $user['lng'];
+
+        if (!$useLat || !$useLng || !$request['client_lat'] || !$request['client_lng']) {
+            jsonError('GPS indisponibil. Asteapta cateva secunde si incearca din nou.');
+        }
+
+        $db->prepare("UPDATE users SET lat = ?, lng = ? WHERE token = ?")->execute([$useLat, $useLng, $token]);
+
+        $settings = getSettings($db);
+        $dist = haversine($useLat, $useLng, $request['client_lat'], $request['client_lng']);
+        $distRoute = $dist * 1.28;
+        $price = max($settings['price_min'], $settings['price_fixed'] + $distRoute * $settings['price_per_km']);
+
+        $stmt = $db->prepare("
+            UPDATE requests 
+            SET status = 'accepted', depanator_token = ?, distance_km = ?, price_ron = ?, accepted_at = NOW()
+            WHERE id = ? AND status = 'waiting'
+        ");
+        $stmt->execute([$token, round($distRoute, 2), round($price, 2), $requestId]);
+
+        if ($stmt->rowCount() === 0) jsonError('Nu s-a putut accepta cererea');
+
+        // Notifica clientul ca un depanator a acceptat (best-effort).
+        notifyUserByToken(
+            $db,
+            $request['client_token'],
+            'Depanator pe drum! 🚗',
+            ($user['name'] ?: 'Un depanator') . ' ți-a acceptat cererea și vine spre tine.',
+            ['type' => 'accepted', 'request_id' => (string)$requestId]
+        );
+
+        jsonResponse(['success' => true, 'distance_km' => round($distRoute, 2), 'price_ron' => round($price, 2)]);
+        break;
+
+    case 'cancel_request':
+        $reason = trim($_POST['reason'] ?? '');
+        if ($user['role'] === 'client') {
+            $stmt = $db->prepare("
+                UPDATE requests 
+                SET status = 'cancelled', cancelled_by = 'client', 
+                    cancel_reason = ?, cancelled_at = NOW()
+                WHERE client_token = ? AND status IN ('waiting','accepted')
+            ");
+            $stmt->execute([$reason ?: 'Anulat de client', $token]);
+        } else {
+            $stmt = $db->prepare("
+                UPDATE requests 
+                SET status = 'waiting', depanator_token = NULL, accepted_at = NULL,
+                    cancelled_by = 'depanator', cancel_reason = ?, cancelled_at = NOW()
+                WHERE depanator_token = ? AND status = 'accepted'
+            ");
+            $stmt->execute([$reason ?: 'Anulat de depanator', $token]);
+        }
+        jsonResponse(['success' => true]);
+        break;
+
+    case 'complete_request':
+        if ($user['role'] !== 'depanator') jsonError('Doar depanatorii pot finaliza');
+        $stmt = $db->prepare("UPDATE requests SET status = 'completed', completed_at = NOW() WHERE depanator_token = ? AND status = 'accepted'");
+        $stmt->execute([$token]);
+        jsonResponse(['success' => true]);
+        break;
+
+    case 'update_settings':
+        if ($user['role'] !== 'depanator') jsonError('Acces interzis');
+        $fields = ['price_per_km', 'price_fixed', 'price_min'];
+        $stmt = $db->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = ?");
+        foreach ($fields as $field) {
+            if (isset($_POST[$field])) {
+                $val = filter_var($_POST[$field], FILTER_VALIDATE_FLOAT);
+                if ($val !== false && $val >= 0) $stmt->execute([round($val, 2), $field]);
+            }
+        }
+        jsonResponse(['success' => true]);
+        break;
+
+    default:
+        jsonError('Actiune necunoscuta');
+}
+
+function haversine($lat1, $lng1, $lat2, $lng2) {
+    $R = 6371;
+    $dLat = deg2rad($lat2 - $lat1);
+    $dLng = deg2rad($lng2 - $lng1);
+    $a = sin($dLat/2)*sin($dLat/2) + cos(deg2rad($lat1))*cos(deg2rad($lat2))*sin($dLng/2)*sin($dLng/2);
+    return $R * 2 * atan2(sqrt($a), sqrt(1-$a));
+}
+
+function getSettings($db) {
+    $stmt = $db->prepare("SELECT setting_key, setting_value FROM settings");
+    $stmt->execute();
+    $rows = $stmt->fetchAll();
+    $out = [];
+    foreach ($rows as $r) $out[$r['setting_key']] = (float)$r['setting_value'];
+    return $out;
+}
+?>

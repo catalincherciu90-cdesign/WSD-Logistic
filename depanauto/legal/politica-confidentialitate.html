@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Politica de confidențialitate — DepanAuto</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; line-height: 1.6; color: #1f2937; background: #f5f5f5; margin: 0; padding: 0; }
+  .wrap { max-width: 760px; margin: 0 auto; background: #fff; padding: 32px 24px 64px; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 32px 0 8px; color: #111; }
+  .meta { color: #6b7280; font-size: 13px; margin-bottom: 24px; }
+  p, li { font-size: 15px; }
+  a { color: #1d4ed8; }
+  .todo { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 2px 6px; font-size: 13px; }
+  .back { display: inline-block; margin-bottom: 16px; color: #1d4ed8; text-decoration: none; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f9fafb; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="javascript:history.back()">← Înapoi</a>
+  <h1>Politica de confidențialitate</h1>
+  <p class="meta">Aplicația DepanAuto · Ultima actualizare: 29.05.2026</p>
+
+  <p>Această politică explică ce date personale colectăm prin aplicația <strong>DepanAuto</strong>, în ce scop, pe ce temei legal și ce drepturi ai, în conformitate cu Regulamentul (UE) 2016/679 (GDPR) și Legea nr. 190/2018.</p>
+
+  <h2>1. Cine este operatorul de date</h2>
+  <p>
+    Operator: <span class="todo">[COMPLETEAZĂ: denumire juridică completă, ex. WSD Logistics SRL]</span><br>
+    CUI/CIF: <span class="todo">[COMPLETEAZĂ]</span> · Nr. Reg. Com.: <span class="todo">[COMPLETEAZĂ]</span><br>
+    Sediu: <span class="todo">[COMPLETEAZĂ: adresă]</span><br>
+    E-mail contact / protecția datelor: <span class="todo">[COMPLETEAZĂ: ex. gdpr@wsdlogistics.ro]</span>
+  </p>
+
+  <h2>2. Ce date colectăm</h2>
+  <table>
+    <tr><th>Categorie</th><th>Date</th></tr>
+    <tr><td>Identificare &amp; cont</td><td>Nume, e-mail, telefon, parolă (stocată doar ca hash, niciodată în clar)</td></tr>
+    <tr><td>Vehicul (client)</td><td>Nr. înmatriculare, marcă, model, an fabricație</td></tr>
+    <tr><td>Vehicul de intervenție (depanator)</td><td>Nr. licență/autorizație, nr. înmatriculare, tip vehicul, capacitate tractare</td></tr>
+    <tr><td>Localizare</td><td>Coordonate GPS (latitudine/longitudine) în timpul utilizării active a serviciului</td></tr>
+    <tr><td>Tranzacțional</td><td>Cereri de depanare, distanță, preț estimat, istoric curse, evaluări (rating)</td></tr>
+    <tr><td>Tehnic</td><td>Adresă IP, token de sesiune, token de notificări push (dacă activezi notificările)</td></tr>
+  </table>
+
+  <h2>3. Scopurile și temeiul legal al prelucrării</h2>
+  <ul>
+    <li><strong>Furnizarea serviciului</strong> (potrivirea client–depanator, calcul distanță și preț, comunicare) — temei: <em>executarea contractului</em> (art. 6(1)(b) GDPR).</li>
+    <li><strong>Geolocalizarea în timp real</strong> — temei: <em>consimțământul tău</em> (art. 6(1)(a)), pe care îl poți retrage oricând oprind serviciul/permisiunea de locație din browser.</li>
+    <li><strong>Securitate și prevenirea abuzurilor</strong> (rate limiting, loguri) — temei: <em>interes legitim</em> (art. 6(1)(f)).</li>
+    <li><strong>Obligații legale</strong> (ex. fiscale, dacă se emit bonuri/facturi) — temei: <em>obligație legală</em> (art. 6(1)(c)).</li>
+  </ul>
+
+  <h2>4. Cui dezvăluim datele (împuterniciți / terți)</h2>
+  <ul>
+    <li><strong>Celălalt utilizator al cursei</strong> — clientul și depanatorul își văd reciproc numele, telefonul, poziția GPS și datele vehiculului, strict pe durata cererii.</li>
+    <li><strong>Google / Firebase Cloud Messaging</strong> — pentru notificări push (Google Ireland Ltd.).</li>
+    <li><strong>OpenRouteService</strong> — pentru calculul rutei pe șosea (se transmit coordonate, nu identitatea ta).</li>
+    <li><strong>Furnizorul de găzduire</strong> — <span class="todo">[COMPLETEAZĂ: nume hosting]</span>.</li>
+  </ul>
+  <p>Unele servicii pot procesa date în afara SEE; în acest caz transferul se face pe baza clauzelor contractuale standard ale UE.</p>
+
+  <h2>5. Cât timp păstrăm datele</h2>
+  <ul>
+    <li>Datele de cont — pe durata existenței contului; le ștergem/anonimizăm la cererea ta de ștergere.</li>
+    <li>Coordonatele GPS active — păstrate doar cât este necesar pentru cursă; <span class="todo">[COMPLETEAZĂ: politica exactă de retenție, ex. anonimizate după 30 zile]</span>.</li>
+    <li>Documente fiscale (bonuri/facturi) — pe durata impusă de lege.</li>
+  </ul>
+
+  <h2>6. Drepturile tale</h2>
+  <p>Ai dreptul de acces, rectificare, ștergere („dreptul de a fi uitat”), restricționare, portabilitate și opoziție, precum și dreptul de a-ți retrage consimțământul. Pentru exercitarea lor scrie la <span class="todo">[COMPLETEAZĂ: e-mail GDPR]</span>. Ai dreptul de a depune plângere la <strong>ANSPDCP</strong> (<a href="https://www.dataprotection.ro" target="_blank" rel="noopener">dataprotection.ro</a>).</p>
+
+  <h2>7. Stocare locală pe dispozitiv</h2>
+  <p>Aplicația folosește <code>localStorage</code> pentru a-ți menține sesiunea (token de autentificare) și un serviciu de cache (Service Worker) pentru funcționare ca PWA. Acestea nu sunt cookie-uri de marketing și sunt strict necesare funcționării.</p>
+
+  <h2>8. Securitate</h2>
+  <p>Folosim HTTPS, parole stocate ca hash, restricționarea originilor (CORS), limitarea cererilor și acces protejat la datele administrative. Niciun sistem nu este însă 100% sigur.</p>
+
+  <h2>9. Minori</h2>
+  <p>Serviciul se adresează persoanelor de peste 18 ani. Nu colectăm cu bună știință date ale minorilor.</p>
+
+  <h2>10. Modificări</h2>
+  <p>Putem actualiza această politică; versiunea curentă este afișată mereu aici, cu data ultimei actualizări.</p>
+</div>
+</body>
+</html>

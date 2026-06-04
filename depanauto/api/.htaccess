@@ -1,0 +1,14 @@
+# DepanAuto - protectie fisiere sensibile din directorul api/
+# Blocheaza accesul HTTP direct la secrete, credentiale si fisiere de tip date.
+
+<FilesMatch "(?i)(config\.local\.php|config\.local\.example\.php|firebase-credentials\.json|\.(json|sql|md|log|ini|env)$|^test_.*\.php$)">
+    # Apache 2.4+
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    # Apache 2.2
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DepanAuto - Client</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1d4ed8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DepanAuto">
+<link rel="apple-touch-icon" href="/depanauto/icons/icon-192.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+#header { background: #fff; border-bottom: 1px solid #e5e5e5; padding: 12px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+#header h1 { font-size: 17px; font-weight: 600; color: #111; flex: 1; }
+#status-badge { font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 100px; background: #f0f0f0; color: #666; }
+#status-badge.waiting { background: #fff3cd; color: #856404; }
+#status-badge.active { background: #d1fae5; color: #065f46; }
+#map { flex: 1; z-index: 1; }
+#bottom-panel { background: #fff; border-top: 1px solid #e5e5e5; padding: 16px; flex-shrink: 0; z-index: 10; }
+.info-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.info-label { font-size: 13px; color: #666; }
+.info-value { font-size: 14px; font-weight: 600; color: #111; }
+.info-value.price { font-size: 22px; color: #1d4ed8; }
+.btn { width: 100%; padding: 14px; font-size: 16px; font-weight: 600; border: none; border-radius: 12px; cursor: pointer; transition: all 0.15s; margin-top: 8px; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: #1d4ed8; color: #fff; }
+.btn-danger { background: #dc2626; color: #fff; }
+.btn-gray { background: #f5f5f5; color: #333; border: 1px solid #e5e5e5; }
+
+/* AUTH SCREEN */
+#auth-screen { position: fixed; inset: 0; background: #fff; z-index: 100; display: flex; flex-direction: column; overflow-y: auto; }
+.auth-header { padding: 48px 24px 24px; text-align: center; }
+.auth-header img { width: 72px; height: 72px; border-radius: 18px; margin-bottom: 16px; }
+.auth-header h2 { font-size: 26px; font-weight: 700; color: #111; }
+.auth-header p { font-size: 15px; color: #666; margin-top: 6px; }
+.auth-tabs { display: flex; margin: 0 24px; border-radius: 10px; background: #f5f5f5; padding: 4px; }
+.auth-tab { flex: 1; padding: 9px; text-align: center; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; color: #666; border: none; background: none; }
+.auth-tab.active { background: #fff; color: #111; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.auth-form { padding: 20px 24px 40px; display: flex; flex-direction: column; gap: 12px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 13px; font-weight: 500; color: #444; }
+.form-group input, .form-group select { padding: 12px 14px; font-size: 15px; border: 1px solid #ddd; border-radius: 10px; background: #fff; color: #111; outline: none; }
+.form-group input:focus { border-color: #1d4ed8; }
+.form-divider { font-size: 12px; color: #aaa; text-align: center; margin: 4px 0; }
+.auth-submit { padding: 15px; font-size: 16px; font-weight: 600; border: none; border-radius: 12px; background: #1d4ed8; color: #fff; cursor: pointer; margin-top: 4px; }
+.auth-error { background: #fee2e2; color: #991b1b; padding: 10px 14px; border-radius: 8px; font-size: 13px; display: none; }
+
+/* PROFILE PANEL */
+#profile-panel { position: fixed; inset: 0; background: #fff; z-index: 90; display: none; flex-direction: column; overflow-y: auto; }
+.profile-header { padding: 16px; border-bottom: 1px solid #e5e5e5; display: flex; align-items: center; gap: 12px; }
+.profile-header h2 { font-size: 17px; font-weight: 600; flex: 1; }
+.profile-avatar { width: 44px; height: 44px; border-radius: 50%; background: #1d4ed8; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+.profile-body { padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+.section-title { font-size: 12px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 8px; }
+
+#depanator-card {
+  background: #fff;
+  border: 1.5px solid #d1fae5;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  display: none;
+}
+#depanator-card .dep-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+#depanator-card .dep-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #059669;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+#depanator-card .dep-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111;
+}
+#depanator-card .dep-rating {
+  font-size: 13px;
+  color: #f59e0b;
+  margin-top: 2px;
+}
+#depanator-card .dep-detail {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+#depanator-card .dep-detail span:first-child { color: #888; }
+#depanator-card .dep-detail span:last-child { font-weight: 500; color: #111; }
+#depanator-card .dep-phone-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1.5px solid #059669;
+  border-radius: 10px;
+  background: #fff;
+  color: #059669;
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+  text-align: center;
+}
+#message-banner {
+  background: #fffbeb;
+  border: 1.5px solid #fcd34d;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: none;
+  font-size: 14px;
+  color: #92400e;
+  line-height: 1.5;
+}
+#message-banner .msg-from { font-size: 11px; color: #b45309; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+#message-banner .msg-text { color: #78350f; }
+
+#cancel-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: none; align-items: center; justify-content: center; padding: 24px; }
+#cancel-modal.open { display: flex; }
+#cancel-inner { background: #fff; width: 100%; max-width: 360px; border-radius: 20px; padding: 24px; }
+#cancel-inner h3 { font-size: 17px; font-weight: 700; color: #111; margin-bottom: 8px; }
+#cancel-inner p { font-size: 14px; color: #666; margin-bottom: 16px; line-height: 1.5; }
+#cancel-inner .cancel-note { background: #fee2e2; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #991b1b; margin-bottom: 16px; }
+.cancel-confirm-btn { width: 100%; padding: 13px; font-size: 15px; font-weight: 600; border: none; border-radius: 12px; background: #dc2626; color: #fff; cursor: pointer; margin-bottom: 8px; }
+.cancel-back-btn { width: 100%; padding: 13px; font-size: 15px; font-weight: 600; border: none; border-radius: 12px; background: #f5f5f5; color: #333; cursor: pointer; }
+
+#toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: #111; color: #fff; padding: 10px 20px; border-radius: 100px; font-size: 13px; z-index: 200; display: none; white-space: nowrap; }
+.pulse { animation: pulse 1.4s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-header">
+    <img src="/depanauto/icons/icon-192.png" alt="DepanAuto">
+    <h2>DepanAuto</h2>
+    <p>Depanare auto la tine acasă</p>
+  </div>
+  <div class="auth-tabs">
+    <button class="auth-tab active" onclick="switchAuthTab('login')">Intră în cont</button>
+    <button class="auth-tab" onclick="switchAuthTab('register')">Cont nou</button>
+  </div>
+  <div class="auth-form">
+    <div class="auth-error" id="auth-error"></div>
+
+    <!-- LOGIN -->
+    <div id="tab-login">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="l-email" placeholder="email@exemplu.ro" autocomplete="email">
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label>Parolă</label>
+        <input type="password" id="l-password" placeholder="Parola ta" autocomplete="current-password">
+      </div>
+      <button class="auth-submit" style="margin-top:20px;width:100%" onclick="doLogin()">Intră în cont</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="tab-register" style="display:none">
+      <div class="form-group">
+        <label>Nume complet</label>
+        <input type="text" id="r-name" placeholder="Ion Popescu" autocomplete="name">
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label>Email</label>
+        <input type="email" id="r-email" placeholder="email@exemplu.ro" autocomplete="email">
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label>Telefon</label>
+        <input type="tel" id="r-phone" placeholder="07xx xxx xxx" autocomplete="tel">
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label>Parolă (minim 6 caractere)</label>
+        <input type="password" id="r-password" placeholder="Alege o parolă" autocomplete="new-password">
+      </div>
+      <div class="form-divider" style="margin-top:16px">— Datele mașinii tale —</div>
+      <div class="form-group">
+        <label>Nr. înmatriculare</label>
+        <input type="text" id="r-plate" placeholder="B 123 ABC" style="text-transform:uppercase">
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label>Marcă</label>
+        <input type="text" id="r-brand" placeholder="Dacia, Ford, BMW...">
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label>Model</label>
+        <input type="text" id="r-model" placeholder="Logan, Focus, X5...">
+      </div>
+      <div class="form-group" style="margin-top:12px">
+        <label>An fabricație</label>
+        <input type="number" id="r-year" placeholder="2018" min="1990" max="2025">
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:8px;margin-top:18px;font-size:13px;color:#444;line-height:1.4;cursor:pointer">
+        <input type="checkbox" id="r-consent" style="margin-top:2px;flex-shrink:0">
+        <span>Sunt de acord cu <a href="../legal/termeni-conditii.html" target="_blank" rel="noopener">Termenii și condițiile</a> și cu <a href="../legal/politica-confidentialitate.html" target="_blank" rel="noopener">Politica de confidențialitate</a>, inclusiv prelucrarea locației mele GPS pentru furnizarea serviciului.</span>
+      </label>
+      <button class="auth-submit" style="margin-top:16px;width:100%" onclick="doRegister()">Creează cont</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE PANEL -->
+<div id="profile-panel">
+  <div class="profile-header">
+    <div class="profile-avatar" id="profile-avatar">?</div>
+    <div>
+      <h2 id="profile-name">Profilul meu</h2>
+      <div style="font-size:13px;color:#666" id="profile-email"></div>
+    </div>
+    <button onclick="closeProfile()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#666">✕</button>
+  </div>
+  <div class="profile-body">
+    <div class="section-title">Date personale</div>
+    <div class="form-group"><label>Nume</label><input type="text" id="p-name"></div>
+    <div class="form-group"><label>Telefon</label><input type="tel" id="p-phone"></div>
+    <div class="section-title">Mașina mea</div>
+    <div class="form-group"><label>Nr. înmatriculare</label><input type="text" id="p-plate" style="text-transform:uppercase"></div>
+    <div class="form-group"><label>Marcă</label><input type="text" id="p-brand"></div>
+    <div class="form-group"><label>Model</label><input type="text" id="p-model"></div>
+    <div class="form-group"><label>An fabricație</label><input type="number" id="p-year"></div>
+    <button class="btn btn-primary" onclick="saveProfile()">Salvează</button>
+    <button class="btn btn-gray" onclick="doLogout()">Deconectează-te</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="header">
+  <span style="font-size:22px">🚗</span>
+  <h1>DepanAuto</h1>
+  <span id="status-badge">Inactiv</span>
+  <button onclick="openProfile()" style="background:none;border:none;font-size:22px;cursor:pointer;padding:0 4px">👤</button>
+  <button onclick="window.location.href='/depanauto/istoric/'" style="background:none;border:none;font-size:22px;cursor:pointer;padding:0 4px">🕐</button>
+</div>
+<div id="map"></div>
+<div id="cancel-modal">
+  <div id="cancel-inner">
+    <h3>Anulezi cererea?</h3>
+    <p id="cancel-msg-text">Ești sigur că vrei să anulezi cererea?</p>
+    <div class="cancel-note" id="cancel-note" style="display:none">
+      ⚠️ Depanatorul a acceptat deja și se îndreaptă spre tine. Anularea va fi salvată în istoricul tău.
+    </div>
+    <button class="cancel-confirm-btn" onclick="confirmCancel()">Da, anulează</button>
+    <button class="cancel-back-btn" onclick="closeCancelModal()">Nu, rămân</button>
+  </div>
+</div>
+
+<div id="bottom-panel">
+  <div id="message-banner">
+    <div class="msg-from">🔧 Mesaj de la depanator</div>
+    <div class="msg-text" id="message-text"></div>
+  </div>
+  <div id="depanator-card">
+    <div class="dep-header">
+      <div class="dep-avatar" id="dep-avatar">?</div>
+      <div>
+        <div class="dep-name" id="dep-name">—</div>
+        <div class="dep-rating" id="dep-rating"></div>
+      </div>
+    </div>
+    <div class="dep-detail"><span>Vehicul</span><span id="dep-vehicle">—</span></div>
+    <div class="dep-detail"><span>Nr. înmatriculare</span><span id="dep-plate">—</span></div>
+    <a id="dep-phone-btn" class="dep-phone-btn" href="#">📞 Sună depanatorul</a>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Depanatori disponibili</span>
+    <span class="info-value" id="dep-count">—</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Distanță estimată</span>
+    <span class="info-value" id="dist-val">—</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Timp estimat</span>
+    <span class="info-value" id="eta-val">—</span>
+  </div>
+  <div class="info-row" style="margin-bottom:4px">
+    <span class="info-label">Cost estimat</span>
+    <span class="info-value price" id="price-val">—</span>
+  </div>
+  <button class="btn btn-primary" id="main-btn" onclick="mainAction()">Cheamă depanator</button>
+</div>
+<div id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="../fcm-init.js"></script>
+<script>
+const API_BASE = 'https://wsdlogistics.ro/depanauto/api';
+let token = localStorage.getItem('depanauto_client_token');
+let map, myMarker, depMarker, routeLine;
+let myLat = null, myLng = null;
+let activeRequest = null;
+let settings = {};
+
+function toast(msg, dur=3000) {
+    const el=document.getElementById('toast');
+    el.textContent=msg; el.style.display='block';
+    setTimeout(()=>el.style.display='none',dur);
+}
+
+function switchAuthTab(tab) {
+    document.getElementById('tab-login').style.display = tab==='login'?'block':'none';
+    document.getElementById('tab-register').style.display = tab==='register'?'block':'none';
+    document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(tab==='login'&&i===0)||(tab==='register'&&i===1)));
+    document.getElementById('auth-error').style.display='none';
+}
+
+function showAuthError(msg) {
+    const el=document.getElementById('auth-error');
+    el.textContent=msg; el.style.display='block';
+}
+
+async function doLogin() {
+    const email=document.getElementById('l-email').value.trim();
+    const password=document.getElementById('l-password').value;
+    if(!email||!password){showAuthError('Completează toate câmpurile');return;}
+    try {
+        const res=await fetch(API_BASE+'/auth.php',{method:'POST',body:new URLSearchParams({action:'login',email,password})});
+        const data=await res.json();
+        if(data.success){
+            if(data.role!=='client'){showAuthError('Acest cont nu este de client');return;}
+            localStorage.setItem('depanauto_client_token',data.token);
+            localStorage.setItem('depanauto_client_name',data.name);
+            token=data.token;
+            document.getElementById('auth-screen').style.display='none';
+            initApp();
+        } else { showAuthError(data.error); }
+    } catch(e){showAuthError('Eroare conexiune la server');}
+}
+
+async function doRegister() {
+    const name=document.getElementById('r-name').value.trim();
+    const email=document.getElementById('r-email').value.trim();
+    const phone=document.getElementById('r-phone').value.trim();
+    const password=document.getElementById('r-password').value;
+    const plate=document.getElementById('r-plate').value.trim().toUpperCase();
+    const brand=document.getElementById('r-brand').value.trim();
+    const model=document.getElementById('r-model').value.trim();
+    const year=document.getElementById('r-year').value.trim();
+    if(!name||!email||!password){showAuthError('Numele, emailul și parola sunt obligatorii');return;}
+    if(!document.getElementById('r-consent').checked){showAuthError('Trebuie să accepți Termenii și Politica de confidențialitate');return;}
+    try {
+        const res=await fetch(API_BASE+'/auth.php',{method:'POST',body:new URLSearchParams({action:'register',role:'client',name,email,phone,password,consent:'1'})});
+        const data=await res.json();
+        if(data.success){
+            // Salveaza si profilul masinii
+            if(plate||brand||model) {
+                await fetch(API_BASE+'/profile.php',{method:'POST',body:new URLSearchParams({token:data.token,car_plate:plate,car_brand:brand,car_model:model,car_year:year})});
+            }
+            localStorage.setItem('depanauto_client_token',data.token);
+            localStorage.setItem('depanauto_client_name',data.name);
+            token=data.token;
+            document.getElementById('auth-screen').style.display='none';
+            initApp();
+        } else { showAuthError(data.error); }
+    } catch(e){showAuthError('Eroare conexiune la server');}
+}
+
+function doLogout() {
+    localStorage.removeItem('depanauto_client_token');
+    localStorage.removeItem('depanauto_client_name');
+    token=null;
+    closeProfile();
+    document.getElementById('auth-screen').style.display='flex';
+}
+
+async function openProfile() {
+    document.getElementById('profile-panel').style.display='flex';
+    const name=localStorage.getItem('depanauto_client_name')||'';
+    document.getElementById('profile-name').textContent=name;
+    document.getElementById('profile-avatar').textContent=name.charAt(0).toUpperCase()||'?';
+    try {
+        const res=await fetch(API_BASE+'/profile.php?token='+token);
+        const data=await res.json();
+        if(data.success){
+            document.getElementById('profile-email').textContent=data.email||'';
+            document.getElementById('p-name').value=data.name||'';
+            document.getElementById('p-phone').value=data.phone||'';
+            const p=data.profile||{};
+            document.getElementById('p-plate').value=p.car_plate||'';
+            document.getElementById('p-brand').value=p.car_brand||'';
+            document.getElementById('p-model').value=p.car_model||'';
+            document.getElementById('p-year').value=p.car_year||'';
+        }
+    } catch(e){}
+}
+
+function closeProfile() { document.getElementById('profile-panel').style.display='none'; }
+
+async function saveProfile() {
+    const body=new URLSearchParams({
+        token,
+        name:document.getElementById('p-name').value,
+        phone:document.getElementById('p-phone').value,
+        car_plate:document.getElementById('p-plate').value.toUpperCase(),
+        car_brand:document.getElementById('p-brand').value,
+        car_model:document.getElementById('p-model').value,
+        car_year:document.getElementById('p-year').value,
+    });
+    try {
+        const res=await fetch(API_BASE+'/profile.php',{method:'POST',body});
+        const data=await res.json();
+        if(data.success){toast('Profil salvat!');closeProfile();}
+    } catch(e){toast('Eroare');}
+}
+
+function initApp() {
+    map=L.map('map',{zoomControl:false}).setView([44.4268,26.1025],14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
+    L.control.zoom({position:'topright'}).addTo(map);
+    startGPS();
+    startPolling();
+    if (typeof initPush === 'function') initPush(API_BASE, 'firebase-messaging-sw.js', token);
+}
+
+function startGPS() {
+    if(!navigator.geolocation) return;
+    navigator.geolocation.watchPosition(pos=>{
+        myLat=pos.coords.latitude; myLng=pos.coords.longitude;
+        if(!myMarker){
+            const icon=L.divIcon({html:'<div style="width:20px;height:20px;background:#e85d3a;border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.35)"></div>',iconSize:[20,20],iconAnchor:[10,10],className:''});
+            myMarker=L.marker([myLat,myLng],{icon}).addTo(map);
+            map.setView([myLat,myLng],15);
+        } else { myMarker.setLatLng([myLat,myLng]); }
+        sendLocation();
+    },()=>{},{enableHighAccuracy:true,maximumAge:5000});
+}
+
+async function sendLocation() {
+    if(!myLat||!token) return;
+    try { await fetch(API_BASE+'/update_location.php',{method:'POST',body:new URLSearchParams({token,lat:myLat,lng:myLng})}); } catch(e){}
+}
+
+function startPolling(){poll();setInterval(poll,3000);}
+
+async function poll() {
+    if(!token) return;
+    try {
+        const res=await fetch(API_BASE+'/get_status.php?token='+token);
+        const data=await res.json();
+        if(!data.success) return;
+        settings=data.settings||settings;
+        updateUI(data);
+        // Verifica mesaje noi cand cererea e activa
+        if(data.active_request && data.active_request.status==='accepted') {
+            checkMessages(data.active_request.id);
+        }
+    } catch(e){}
+}
+
+function updateUI(data) {
+    document.getElementById('dep-count').textContent=(data.depanatori_online||0)+' disponibili';
+    const req=data.active_request;
+    const badge=document.getElementById('status-badge');
+    const btn=document.getElementById('main-btn');
+    if(!req){
+        activeRequest=null;
+        badge.textContent='Inactiv'; badge.className=''; updateDepanatorCard(null); document.getElementById('message-banner').style.display='none';
+        btn.textContent='Cheamă depanator'; btn.className='btn btn-primary'; btn.onclick=mainAction;
+        document.getElementById('dist-val').textContent='—';
+        document.getElementById('eta-val').textContent='—';
+        document.getElementById('price-val').textContent='—';
+        if(depMarker){map.removeLayer(depMarker);depMarker=null;}
+        if(routeLine){map.removeLayer(routeLine);routeLine=null;}
+    } else if(req.status==='waiting') {
+        activeRequest=req;
+        badge.innerHTML='<span class="pulse">●</span> Se caută...'; badge.className='waiting'; updateDepanatorCard(null);
+        btn.textContent='Anulează cererea'; btn.className='btn btn-danger'; btn.onclick=cancelRequest;
+    } else if(req.status==='accepted') {
+        activeRequest=req;
+        badge.textContent='● Depanator pe drum'; badge.className='active'; if(data.depanator_info) updateDepanatorCard(data.depanator_info);
+        btn.textContent='Anulează cererea'; btn.className='btn btn-danger'; btn.onclick=cancelRequest;
+        if(req.distance_km){
+            document.getElementById('dist-val').textContent=req.distance_km.toFixed(1)+' km';
+            document.getElementById('eta-val').textContent=Math.round((req.distance_km/40)*60)+' min';
+            document.getElementById('price-val').textContent=req.price_ron.toFixed(2)+' RON';
+        }
+        if(data.other_location) updateDepMarker(data.other_location.lat,data.other_location.lng);
+    }
+}
+
+function updateDepanatorCard(info) {
+    const card = document.getElementById('depanator-card');
+    if (!info) { card.style.display='none'; return; }
+    card.style.display = 'block';
+    const name = info.name || '—';
+    document.getElementById('dep-avatar').textContent = name.charAt(0).toUpperCase();
+    document.getElementById('dep-name').textContent = name;
+    const stars = info.rating ? '⭐'.repeat(Math.round(info.rating)) + ' ' + info.rating + ' (' + info.total_jobs + ' curse)' : 'Fără rating încă';
+    document.getElementById('dep-rating').textContent = stars;
+    const vehicle = [info.vehicle_type, info.vehicle_brand].filter(Boolean).join(' ') || '—';
+    document.getElementById('dep-vehicle').textContent = vehicle;
+    document.getElementById('dep-plate').textContent = info.vehicle_plate || '—';
+    const phoneBtn = document.getElementById('dep-phone-btn');
+    if (info.phone && info.phone !== '—') {
+        phoneBtn.href = 'tel:' + info.phone;
+        phoneBtn.style.display = 'block';
+    } else {
+        phoneBtn.style.display = 'none';
+    }
+}
+
+async function updateDepMarker(lat,lng) {
+    const icon=L.divIcon({html:'<div style="width:20px;height:20px;background:#2563eb;border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.35)"></div>',iconSize:[20,20],iconAnchor:[10,10],className:''});
+    if(!depMarker){depMarker=L.marker([lat,lng],{icon}).addTo(map);}else{depMarker.setLatLng([lat,lng]);}
+    if(!myLat) return;
+    if(routeLine) map.removeLayer(routeLine);
+    try {
+        const res = await fetch(API_BASE+'/get_route.php?from_lat='+lat+'&from_lng='+lng+'&to_lat='+myLat+'&to_lng='+myLng);
+        const data = await res.json();
+        if(data.success && data.polyline && data.polyline.length > 0) {
+            routeLine = L.polyline(data.polyline, {color:'#2563eb',weight:4,opacity:0.8}).addTo(map);
+            L.polyline(data.polyline,{color:'#93c5fd',weight:10,opacity:0.2}).addTo(map);
+            // Actualizeaza distanta si ETA cu date reale
+            document.getElementById('dist-val').textContent = data.distance_km.toFixed(1)+' km';
+            document.getElementById('eta-val').textContent = data.duration_min+' min';
+        } else {
+            routeLine = L.polyline([[myLat,myLng],[lat,lng]],{color:'#2563eb',weight:3,opacity:0.6,dashArray:'8,6'}).addTo(map);
+        }
+    } catch(e) {
+        routeLine = L.polyline([[myLat,myLng],[lat,lng]],{color:'#2563eb',weight:3,opacity:0.6,dashArray:'8,6'}).addTo(map);
+    }
+}
+
+async function checkMessages(requestId) {
+    try {
+        const res = await fetch(API_BASE+'/message.php?token='+token+'&request_id='+requestId);
+        const data = await res.json();
+        if(data.success && data.messages && data.messages.length > 0) {
+            const last = data.messages[data.messages.length-1];
+            const banner = document.getElementById('message-banner');
+            document.getElementById('message-text').textContent = last.message;
+            banner.style.display = 'block';
+            // Ascunde dupa 15 secunde
+            setTimeout(() => banner.style.display='none', 15000);
+        }
+    } catch(e){}
+}
+
+async function mainAction() {
+    if(!myLat){toast('Așteptăm GPS-ul...');return;}
+    if(!token) return;
+    document.getElementById('main-btn').disabled=true;
+    try {
+        const res=await fetch(API_BASE+'/create_request.php',{method:'POST',body:new URLSearchParams({token,lat:myLat,lng:myLng})});
+        const data=await res.json();
+        if(data.success){toast('Cerere trimisă!');poll();}
+        else{toast('Eroare: '+data.error);}
+    } catch(e){toast('Eroare conexiune');}
+    document.getElementById('main-btn').disabled=false;
+}
+
+function cancelRequest() {
+    const isAccepted = activeRequest && activeRequest.status === 'accepted';
+    document.getElementById('cancel-note').style.display = isAccepted ? 'block' : 'none';
+    document.getElementById('cancel-msg-text').textContent = isAccepted
+        ? 'Ești sigur că vrei să anulezi? Depanatorul este deja pe drum.'
+        : 'Ești sigur că vrei să anulezi cererea?';
+    document.getElementById('cancel-modal').className = 'open';
+}
+
+function closeCancelModal() {
+    document.getElementById('cancel-modal').className = '';
+}
+
+async function confirmCancel() {
+    closeCancelModal();
+    if(!token) return;
+    const isAccepted = activeRequest && activeRequest.status === 'accepted';
+    const reason = isAccepted ? 'Anulat de client dupa acceptare' : 'Anulat de client';
+    try {
+        await fetch(API_BASE+'/action.php',{method:'POST',body:new URLSearchParams({token,action:'cancel_request',reason})});
+        toast('Cerere anulată');
+        poll();
+    } catch(e){}
+}
+
+window.addEventListener('load',()=>{
+    if(token){document.getElementById('auth-screen').style.display='none';initApp();}
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+});
+</script>
+</body>
+</html>
