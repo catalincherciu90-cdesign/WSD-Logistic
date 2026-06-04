@@ -74,9 +74,12 @@ CREATE TABLE IF NOT EXISTS requests (
     client_lng      DOUBLE DEFAULT NULL,
     distance_km     DOUBLE DEFAULT NULL,
     price_ron       DOUBLE DEFAULT NULL,
+    cancelled_by    ENUM('client', 'depanator') DEFAULT NULL,
+    cancel_reason   VARCHAR(255) DEFAULT NULL,
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
     accepted_at     DATETIME DEFAULT NULL,
-    completed_at    DATETIME DEFAULT NULL
+    completed_at    DATETIME DEFAULT NULL,
+    cancelled_at    DATETIME DEFAULT NULL
 );
 
 -- ---------------------------------------------------------------------------

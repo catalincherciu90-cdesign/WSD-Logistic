@@ -1,0 +1,22 @@
+name = "depanauto"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# Variabile publice (nesensibile). ALLOWED_ORIGIN: pune domeniul real in productie.
+[vars]
+ALLOWED_ORIGIN = "*"
+
+# Secrete (NU le pune aici) — seteaza-le cu:
+#   wrangler secret put ORS_KEY
+#   wrangler secret put FIREBASE_CREDENTIALS   (lipesti tot JSON-ul service account)
+
+# Frontend static servit din acelasi Worker. Vezi worker/build.sh care genereaza ./public.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# Baza de date D1. Creeaza una cu `wrangler d1 create depanauto` si pune ID-ul aici.
+[[d1_databases]]
+binding = "DB"
+database_name = "depanauto"
+database_id = "PUNE_AICI_DATABASE_ID"
