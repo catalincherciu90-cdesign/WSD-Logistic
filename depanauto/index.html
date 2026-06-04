@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DepanAuto — Depanare auto rapidă, la tine acasă</title>
+<meta name="description" content="Cheamă un depanator auto în câteva secunde. Urmărești mașina pe hartă în timp real, preț transparent pe kilometru, fără telefoane și negocieri.">
+<meta name="theme-color" content="#1d4ed8">
+<style>
+  :root{
+    --blue:#1d4ed8; --blue-d:#1e40af; --green:#059669; --ink:#0f172a;
+    --muted:#64748b; --line:#e5e7eb; --bg:#f8fafc; --card:#fff;
+    --radius:18px; --shadow:0 10px 30px rgba(2,6,23,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 22px;border-radius:14px;font-weight:700;font-size:15px;border:none;cursor:pointer;transition:transform .12s,box-shadow .12s;white-space:nowrap}
+  .btn:active{transform:scale(.97)}
+  .btn-blue{background:var(--blue);color:#fff;box-shadow:0 6px 18px rgba(29,78,216,.35)}
+  .btn-blue:hover{background:var(--blue-d)}
+  .btn-green{background:var(--green);color:#fff;box-shadow:0 6px 18px rgba(5,150,105,.32)}
+  .btn-ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+  .btn-lg{padding:16px 28px;font-size:16px}
+
+  /* NAV */
+  header{position:sticky;top:0;z-index:50;background:rgba(248,250,252,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  nav{display:flex;align-items:center;gap:16px;height:64px}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px}
+  .logo .mark{width:34px;height:34px;border-radius:9px;background:var(--blue);display:grid;place-items:center;font-size:18px}
+  .nav-links{display:flex;gap:26px;margin-left:auto;font-size:14px;font-weight:600;color:var(--muted)}
+  .nav-links a:hover{color:var(--ink)}
+  .nav-cta{display:flex;gap:10px;margin-left:24px}
+  @media(max-width:860px){.nav-links{display:none}.nav-cta{margin-left:auto}}
+
+  /* HERO */
+  .hero{padding:64px 0 40px;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+  .hero h1{font-size:46px;line-height:1.1;letter-spacing:-.02em;font-weight:800}
+  .hero h1 .hl{color:var(--blue)}
+  .hero p.sub{font-size:18px;color:var(--muted);margin:18px 0 26px;max-width:520px}
+  .hero-cta{display:flex;gap:12px;flex-wrap:wrap}
+  .trust{display:flex;align-items:center;gap:18px;margin-top:24px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+  .trust b{color:var(--ink)}
+  @media(max-width:860px){.hero{grid-template-columns:1fr;padding:40px 0 20px}.hero h1{font-size:34px}}
+
+  /* PHONE MOCK */
+  .phone{justify-self:center;width:280px;height:560px;background:#0f172a;border-radius:42px;padding:12px;box-shadow:var(--shadow);position:relative}
+  .phone .screen{width:100%;height:100%;border-radius:32px;overflow:hidden;background:#eef2ff;position:relative;display:flex;flex-direction:column}
+  .phone .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:22px;background:#0f172a;border-radius:0 0 14px 14px;z-index:3}
+  .map{flex:1;background:linear-gradient(135deg,#dbeafe,#eef2ff);position:relative;overflow:hidden}
+  .map::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:34px 34px;opacity:.5}
+  .road{position:absolute;top:55%;left:-10%;width:120%;height:14px;background:#cbd5e1;transform:rotate(-8deg);border-radius:8px}
+  .pin{position:absolute;width:26px;height:26px;border-radius:50%;border:4px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.25);display:grid;place-items:center;font-size:12px}
+  .pin.client{background:var(--blue);top:34%;left:28%}
+  .pin.dep{background:var(--green);top:62%;left:62%}
+  .pulse{position:absolute;top:34%;left:28%;width:26px;height:26px;border-radius:50%;background:rgba(29,78,216,.4);animation:pulse 2s infinite}
+  @keyframes pulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(3);opacity:0}}
+  .card-pop{background:#fff;margin:0 12px 14px;border-radius:16px;padding:13px 15px;box-shadow:0 6px 16px rgba(2,6,23,.12)}
+  .card-pop .row{display:flex;justify-content:space-between;align-items:center}
+  .card-pop .name{font-weight:700;font-size:14px}
+  .card-pop .stars{color:#f59e0b;font-size:12px}
+  .card-pop .price{font-size:22px;font-weight:800;color:var(--blue);margin-top:4px}
+  .card-pop .eta{font-size:12px;color:var(--muted)}
+  .card-pop .go{margin-top:10px;width:100%;text-align:center;background:var(--green);color:#fff;padding:10px;border-radius:11px;font-weight:700;font-size:14px}
+
+  /* SECTIONS */
+  section{padding:60px 0}
+  .eyebrow{color:var(--blue);font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;text-align:center}
+  h2.title{font-size:34px;text-align:center;letter-spacing:-.02em;margin:8px 0 10px;font-weight:800}
+  .lead{text-align:center;color:var(--muted);max-width:580px;margin:0 auto 40px;font-size:17px}
+
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:26px;position:relative}
+  .step .num{width:38px;height:38px;border-radius:11px;background:#eef2ff;color:var(--blue);font-weight:800;display:grid;place-items:center;font-size:17px;margin-bottom:14px}
+  .step h3{font-size:18px;margin-bottom:6px}
+  .step p{color:var(--muted);font-size:15px}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .feat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+  .feat .ico{font-size:26px;margin-bottom:10px}
+  .feat h3{font-size:16px;margin-bottom:4px}
+  .feat p{color:var(--muted);font-size:14px}
+  @media(max-width:760px){.features{grid-template-columns:1fr}}
+
+  /* DEPANATOR band */
+  .band{background:linear-gradient(135deg,#065f46,#059669);color:#fff;border-radius:26px;padding:48px;display:grid;grid-template-columns:1.2fr .8fr;gap:30px;align-items:center}
+  .band h2{font-size:30px;font-weight:800;letter-spacing:-.02em}
+  .band p{opacity:.9;margin:14px 0 22px;font-size:16px}
+  .band ul{list-style:none;display:grid;gap:10px}
+  .band li{display:flex;gap:10px;align-items:flex-start;font-size:15px}
+  .band li::before{content:"✓";font-weight:800;color:#a7f3d0}
+  .btn-white{background:#fff;color:var(--green)}
+  @media(max-width:760px){.band{grid-template-columns:1fr;padding:32px}}
+
+  /* PRICING */
+  .price-card{max-width:420px;margin:0 auto;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:34px;text-align:center;box-shadow:var(--shadow)}
+  .price-card .big{font-size:48px;font-weight:800;color:var(--blue);letter-spacing:-.02em}
+  .price-card .big small{font-size:18px;color:var(--muted);font-weight:600}
+  .price-rows{text-align:left;margin:22px 0;display:grid;gap:12px}
+  .price-rows .r{display:flex;justify-content:space-between;padding-bottom:10px;border-bottom:1px dashed var(--line);font-size:15px}
+  .price-rows .r b{font-weight:700}
+  .price-note{font-size:13px;color:var(--muted)}
+
+  /* FINAL CTA */
+  .final{background:linear-gradient(135deg,#1d4ed8,#1e3a8a);color:#fff;border-radius:26px;padding:54px;text-align:center}
+  .final h2{font-size:32px;font-weight:800;letter-spacing:-.02em}
+  .final p{opacity:.9;margin:12px 0 26px;font-size:17px}
+  .final .hero-cta{justify-content:center}
+
+  footer{padding:48px 0 36px;border-top:1px solid var(--line);margin-top:60px;color:var(--muted);font-size:14px}
+  .foot-grid{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:center}
+  .foot-links{display:flex;gap:22px;flex-wrap:wrap}
+  .foot-links a:hover{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <nav>
+      <a class="logo"><span class="mark">🔧</span> DepanAuto</a>
+      <div class="nav-links">
+        <a href="#cum">Cum funcționează</a>
+        <a href="#beneficii">Beneficii</a>
+        <a href="#depanatori">Pentru depanatori</a>
+        <a href="#tarife">Tarife</a>
+      </div>
+      <div class="nav-cta">
+        <a href="client/" class="btn btn-blue">Cheamă depanator</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="wrap">
+  <section class="hero">
+    <div>
+      <h1>Pană pe drum? <span class="hl">Un depanator vine la tine</span> în câteva minute.</h1>
+      <p class="sub">Apeși un buton, vezi depanatorul venind spre tine pe hartă în timp real și știi prețul din prima — fără telefoane, fără negocieri, fără surprize.</p>
+      <div class="hero-cta">
+        <a href="client/" class="btn btn-blue btn-lg">🚗 Sunt client — cheamă ajutor</a>
+        <a href="depanator/" class="btn btn-ghost btn-lg">🔧 Sunt depanator</a>
+      </div>
+      <div class="trust">
+        <span>📍 GPS în timp real</span>
+        <span>💸 <b>Preț transparent</b> pe km</span>
+        <span>⭐ Depanatori evaluați</span>
+      </div>
+    </div>
+
+    <!-- Phone mockup -->
+    <div class="phone" aria-hidden="true">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="map">
+          <div class="road"></div>
+          <div class="pulse"></div>
+          <div class="pin client">🚗</div>
+          <div class="pin dep">🔧</div>
+        </div>
+        <div class="card-pop">
+          <div class="row">
+            <span class="name">Andrei • Platformă tractare</span>
+            <span class="stars">★★★★★</span>
+          </div>
+          <div class="price">87,50 RON</div>
+          <div class="eta">Ajunge în ~8 min • 4,2 km</div>
+          <div class="go">Acceptă depanatorul</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- CUM FUNCTIONEAZA -->
+<div class="wrap">
+  <section id="cum">
+    <div class="eyebrow">Simplu ca o aplicație de ride-sharing</div>
+    <h2 class="title">Cum funcționează</h2>
+    <p class="lead">Trei pași și ești pe drum din nou. Totul direct din browser, fără instalare.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <h3>Trimite cererea</h3>
+        <p>Deschizi aplicația, apeși „Cheamă depanator". Locația ta GPS e trimisă automat — nu trebuie să explici unde ești.</p>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3>Un depanator acceptă</h3>
+        <p>Vezi numele, vehiculul, rating-ul și prețul estimat. Accepți și depanatorul pornește spre tine.</p>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3>Îl urmărești pe hartă</h3>
+        <p>Vezi mașina apropiindu-se în timp real, vorbiți prin mesaje, iar la final primești bon PDF și poți evalua.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- BENEFICII -->
+<div class="wrap">
+  <section id="beneficii">
+    <div class="eyebrow">De ce DepanAuto</div>
+    <h2 class="title">Tot ce ai nevoie la o pană</h2>
+    <p class="lead">Construit pentru momente stresante — rapid, clar și de încredere.</p>
+    <div class="features">
+      <div class="feat"><div class="ico">📍</div><h3>Tracking în timp real</h3><p>Poziția ta și a depanatorului se actualizează la fiecare câteva secunde, pe hartă.</p></div>
+      <div class="feat"><div class="ico">💸</div><h3>Preț transparent</h3><p>Tarif fix + cost pe kilometru, calculat automat. Vezi suma înainte să accepți.</p></div>
+      <div class="feat"><div class="ico">⭐</div><h3>Depanatori evaluați</h3><p>Rating din partea clienților reali, ca să alegi pe cine ai încredere.</p></div>
+      <div class="feat"><div class="ico">🧾</div><h3>Istoric & bon PDF</h3><p>Toate intervenițiile salvate, cu bon descărcabil pentru fiecare cursă.</p></div>
+      <div class="feat"><div class="ico">🔔</div><h3>Notificări</h3><p>Ești anunțat când un depanator acceptă și când îți trimite un mesaj.</p></div>
+      <div class="feat"><div class="ico">📲</div><h3>Funcționează ca o aplicație</h3><p>O instalezi din browser (PWA) — fără App Store, fără spațiu ocupat.</p></div>
+    </div>
+  </section>
+</div>
+
+<!-- PENTRU DEPANATORI -->
+<div class="wrap">
+  <section id="depanatori">
+    <div class="band">
+      <div>
+        <h2>Ești depanator? Primești clienți din zona ta.</h2>
+        <p>Înregistrează-te, activează serviciul și primești cereri de la șoferi aflați în apropiere. Tu decizi ce accepți.</p>
+        <ul>
+          <li>Cereri în timp real, cu locația și distanța clientului</li>
+          <li>Preț calculat automat — primești estimarea înainte să accepți</li>
+          <li>Îți construiești reputația cu rating de la clienți</li>
+          <li>Istoric complet al curselor și al încasărilor</li>
+        </ul>
+        <a href="depanator/" class="btn btn-white btn-lg" style="margin-top:24px">Devino depanator partener</a>
+      </div>
+      <div style="text-align:center;font-size:120px;line-height:1">🚛</div>
+    </div>
+  </section>
+</div>
+
+<!-- TARIFE -->
+<div class="wrap">
+  <section id="tarife">
+    <div class="eyebrow">Fără costuri ascunse</div>
+    <h2 class="title">Tarife transparente</h2>
+    <p class="lead">Prețul se calculează automat în funcție de distanță și se afișează înainte de a accepta.</p>
+    <div class="price-card">
+      <div class="big"><span id="p-perkm-big">4,50</span> <small>RON / km</small></div>
+      <div class="price-rows">
+        <div class="r"><span>Taxă fixă de deplasare</span><b id="p-fixed">10,00 RON</b></div>
+        <div class="r"><span>Cost pe kilometru</span><b id="p-perkm">4,50 RON</b></div>
+        <div class="r" style="border:none"><span>Tarif minim per cursă</span><b id="p-min">25,00 RON</b></div>
+      </div>
+      <p class="price-note" id="p-example">Exemplu: pentru o intervenție la 8 km → ~46 RON. Suma exactă apare în aplicație înainte să confirmi.</p>
+    </div>
+  </section>
+</div>
+
+<!-- FINAL CTA -->
+<div class="wrap">
+  <section>
+    <div class="final">
+      <h2>Ai rămas în pană? Nu mai aștepta.</h2>
+      <p>Cheamă un depanator acum — durează mai puțin decât un telefon.</p>
+      <div class="hero-cta">
+        <a href="client/" class="btn btn-white btn-lg">🚗 Cheamă depanator</a>
+        <a href="depanator/" class="btn btn-ghost btn-lg" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.5)">🔧 Sunt depanator</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <a class="logo"><span class="mark">🔧</span> DepanAuto</a>
+      <div class="foot-links">
+        <a href="client/">Client</a>
+        <a href="depanator/">Depanator</a>
+        <a href="legal/termeni-conditii.html">Termeni și condiții</a>
+        <a href="legal/politica-confidentialitate.html">Confidențialitate</a>
+      </div>
+    </div>
+    <div style="margin-top:20px;font-size:13px">© 2026 DepanAuto • wsdlogistics.ro — depanare auto la un click distanță.</div>
+  </div>
+</footer>
+
+<script>
+// Tarifele se citesc live din setările editabile din panoul admin.
+(async function(){
+  const fmt = n => Number(n).toLocaleString('ro-RO',{minimumFractionDigits:2,maximumFractionDigits:2});
+  try{
+    const res = await fetch('api/settings.php');
+    const d = await res.json();
+    if(!d || !d.success || !d.settings) return;
+    const s = d.settings;
+    const perKm = +s.price_per_km, fixed = +s.price_fixed, min = +s.price_min;
+    if(perKm){ document.getElementById('p-perkm-big').textContent = fmt(perKm); document.getElementById('p-perkm').textContent = fmt(perKm)+' RON'; }
+    if(!isNaN(fixed)) document.getElementById('p-fixed').textContent = fmt(fixed)+' RON';
+    if(!isNaN(min)) document.getElementById('p-min').textContent = fmt(min)+' RON';
+    if(perKm && !isNaN(fixed) && !isNaN(min)){
+      const ex = Math.max(min, fixed + 8*perKm);
+      document.getElementById('p-example').textContent = 'Exemplu: pentru o intervenție la 8 km → ~'+fmt(ex)+' RON. Suma exactă apare în aplicație înainte să confirmi.';
+    }
+  }catch(e){ /* rămân valorile implicite afișate */ }
+})();
+</script>
+</body>
+</html>

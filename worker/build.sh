@@ -15,6 +15,7 @@ for d in client depanator admin istoric legal icons; do
   [ -d "$SRC/$d" ] && cp -r "$SRC/$d" "$DST/"
 done
 [ -f "$SRC/fcm-init.js" ] && cp "$SRC/fcm-init.js" "$DST/"
+[ -f "$SRC/index.html" ] && cp "$SRC/index.html" "$DST/"
 
 # API_BASE: din URL absolut hardcodat -> cale relativa same-origin
 while IFS= read -r f; do

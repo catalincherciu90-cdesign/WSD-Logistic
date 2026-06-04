@@ -480,6 +480,11 @@ async function h_get_route(request, env, p) {
   } catch (_) { return fallback(); }
 }
 
+// Setari publice (preturi) — pentru landing page. Doar citire, fara token.
+async function h_settings(request, env) {
+  return ok(env, { settings: await getSettings(env) });
+}
+
 async function h_save_fcm_token(request, env, p) {
   if (request.method !== 'POST') return err(env, 'Metoda nepermisa', 405);
   const token = getToken(p); if (!token) return err(env, 'Token invalid');
@@ -612,6 +617,7 @@ const ROUTES = {
   'history.php': h_history,
   'get_route.php': h_get_route,
   'save_fcm_token.php': h_save_fcm_token,
+  'settings.php': h_settings,
   'admin.php': h_admin,
 };
 
