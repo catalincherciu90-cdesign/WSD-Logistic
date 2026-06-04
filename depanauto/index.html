@@ -246,13 +246,13 @@
     <h2 class="title">Tarife transparente</h2>
     <p class="lead">Prețul se calculează automat în funcție de distanță și se afișează înainte de a accepta.</p>
     <div class="price-card">
-      <div class="big">4,50 <small>RON / km</small></div>
+      <div class="big"><span id="p-perkm-big">4,50</span> <small>RON / km</small></div>
       <div class="price-rows">
-        <div class="r"><span>Taxă fixă de deplasare</span><b>10,00 RON</b></div>
-        <div class="r"><span>Cost pe kilometru</span><b>4,50 RON</b></div>
-        <div class="r" style="border:none"><span>Tarif minim per cursă</span><b>25,00 RON</b></div>
+        <div class="r"><span>Taxă fixă de deplasare</span><b id="p-fixed">10,00 RON</b></div>
+        <div class="r"><span>Cost pe kilometru</span><b id="p-perkm">4,50 RON</b></div>
+        <div class="r" style="border:none"><span>Tarif minim per cursă</span><b id="p-min">25,00 RON</b></div>
       </div>
-      <p class="price-note">Exemplu: pentru o intervenție la 8 km → ~46 RON. Suma exactă apare în aplicație înainte să confirmi.</p>
+      <p class="price-note" id="p-example">Exemplu: pentru o intervenție la 8 km → ~46 RON. Suma exactă apare în aplicație înainte să confirmi.</p>
     </div>
   </section>
 </div>
@@ -286,5 +286,25 @@
   </div>
 </footer>
 
+<script>
+// Tarifele se citesc live din setările editabile din panoul admin.
+(async function(){
+  const fmt = n => Number(n).toLocaleString('ro-RO',{minimumFractionDigits:2,maximumFractionDigits:2});
+  try{
+    const res = await fetch('api/settings.php');
+    const d = await res.json();
+    if(!d || !d.success || !d.settings) return;
+    const s = d.settings;
+    const perKm = +s.price_per_km, fixed = +s.price_fixed, min = +s.price_min;
+    if(perKm){ document.getElementById('p-perkm-big').textContent = fmt(perKm); document.getElementById('p-perkm').textContent = fmt(perKm)+' RON'; }
+    if(!isNaN(fixed)) document.getElementById('p-fixed').textContent = fmt(fixed)+' RON';
+    if(!isNaN(min)) document.getElementById('p-min').textContent = fmt(min)+' RON';
+    if(perKm && !isNaN(fixed) && !isNaN(min)){
+      const ex = Math.max(min, fixed + 8*perKm);
+      document.getElementById('p-example').textContent = 'Exemplu: pentru o intervenție la 8 km → ~'+fmt(ex)+' RON. Suma exactă apare în aplicație înainte să confirmi.';
+    }
+  }catch(e){ /* rămân valorile implicite afișate */ }
+})();
+</script>
 </body>
 </html>

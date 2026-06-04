@@ -57,6 +57,8 @@ r = await call('rating.php', { token: cliTok, request_id: reqId, stars: '4' }); 
 
 r = await call('history.php', { token: cliTok }, 'GET'); A(r.body.success && r.body.total === 1 && r.body.history[0].my_rating === 5, 'history client cu rating');
 
+r = await call('settings.php', {}, 'GET'); A(r.body.success && r.body.settings.price_per_km === 4.5 && r.body.settings.price_min === 25, 'settings.php public (preturi pt landing)');
+
 const enc = (s) => new TextEncoder().encode(s); const b64 = (b) => Buffer.from(b).toString('base64');
 const salt = crypto.getRandomValues(new Uint8Array(16));
 const key = await crypto.subtle.importKey('raw', enc('admin123'), 'PBKDF2', false, ['deriveBits']);
