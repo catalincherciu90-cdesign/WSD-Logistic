@@ -81,7 +81,7 @@ node scripts/hash-password.mjs "parola"
 wrangler d1 execute depanauto --remote --command "INSERT INTO admins (...) VALUES (...);"
 ```
 
-**Deploy automat (GitHub Actions):** adaugă secretul de repo **`CLOUDFLARE_API_TOKEN`** (permisiuni Workers + D1 edit). Apoi orice push pe `main` care atinge `worker/**` sau frontend-ul deployează singur. Migrarea schemei (pasul 2) rămâne manuală, o dată.
+**Deploy automat (Cloudflare Workers Builds):** repo-ul e conectat la Worker-ul `wsdlogistic` (Cloudflare → Worker → Settings → Build). Setează: **Root directory** = `worker`, **Build command** = `npm install && bash build.sh`, **Deploy command** = `npx wrangler deploy`, **Production branch** = `main`. Apoi fiecare push deployează automat (tokenul de build e gestionat de Cloudflare). Migrarea schemei (pasul 2) rămâne manuală, o dată.
 
 **Push (opțional):** completează `FCM_VAPID_KEY` în `depanauto/fcm-init.js` (același pas ca la varianta A).
 

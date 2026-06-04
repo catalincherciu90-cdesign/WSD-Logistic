@@ -53,8 +53,14 @@ node scripts/hash-password.mjs "parola-aleasa"
 wrangler d1 execute depanauto --remote --command "INSERT INTO admins (...) VALUES (...);"
 ```
 
-## Deploy automat (GitHub Actions)
-Workflow-ul `.github/workflows/deploy-depanauto-worker.yml` deployează la fiecare push pe `main` care atinge `worker/**` sau frontend-ul. Necesită secretul de repo **`CLOUDFLARE_API_TOKEN`** (Workers + D1 edit). Migrarea schemei (pasul 2) rămâne manuală, o singură dată.
+## Deploy automat (Cloudflare Workers Builds)
+Repo-ul este conectat la Worker-ul `wsdlogistic` prin **Workers Builds** (Cloudflare → Worker → Settings → Build). Setări necesare:
+- **Root directory:** `worker`
+- **Build command:** `npm install && bash build.sh`
+- **Deploy command:** `npx wrangler deploy`
+- **Production branch:** `main`
+
+La fiecare push (pe `main` sau pe branch-uri non-prod, dacă e activat) Cloudflare construiește și deployează automat, folosind tokenul de build configurat în dashboard. Numele din `wrangler.toml` (`wsdlogistic`) trebuie să corespundă Worker-ului conectat. Migrarea schemei D1 rămâne manuală, o singură dată.
 
 ## Cheia VAPID (push în browser)
 Pentru notificări push trebuie completată și `FCM_VAPID_KEY` în `depanauto/fcm-init.js` (Firebase Console → Cloud Messaging → Web Push certificates) — la fel ca în varianta PHP.
