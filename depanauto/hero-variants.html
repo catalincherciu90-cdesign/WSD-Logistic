@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DepanAuto — 3 variante de Hero (preview)</title>
+<style>
+  :root{--blue:#1d4ed8;--blue-d:#1e40af;--green:#059669;--ink:#0f172a;--muted:#64748b;--line:#e5e7eb}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 22px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:15px 26px;border-radius:14px;font-weight:700;font-size:15px;border:none;cursor:pointer;transition:transform .12s}
+  .btn:active{transform:scale(.97)}
+  .label-bar{background:#0f172a;color:#fff;padding:14px 22px;font-size:14px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .label-bar b{font-size:16px}
+  .label-bar .seo{background:rgba(255,255,255,.12);padding:4px 10px;border-radius:8px;font-size:12px}
+  h1{letter-spacing:-.02em;line-height:1.08;font-weight:800}
+
+  /* ================= HERO A — Non-stop / urgență 24-7 (route animat) ================= */
+  .hA{background:radial-gradient(1200px 500px at 70% -10%,#1e3a8a,#0b1220);color:#fff;overflow:hidden;position:relative}
+  .hA .grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:42px 42px;mask-image:radial-gradient(800px 400px at 70% 20%,#000,transparent)}
+  .hA .inner{position:relative;display:grid;grid-template-columns:1.05fr .95fr;gap:30px;align-items:center;padding:70px 0}
+  .hA .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.45);color:#6ee7b7;padding:7px 14px;border-radius:100px;font-size:13px;font-weight:700}
+  .hA .dot{width:9px;height:9px;border-radius:50%;background:#10b981;animation:blink 1.2s infinite}
+  @keyframes blink{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(16,185,129,.6)}50%{opacity:.5;box-shadow:0 0 0 7px rgba(16,185,129,0)}}
+  .hA h1{font-size:50px;margin:18px 0 16px}
+  .hA h1 .grad{background:linear-gradient(90deg,#60a5fa,#34d399);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hA p{color:#cbd5e1;font-size:18px;max-width:500px;margin-bottom:26px}
+  .hA .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .hA .btn-blue{background:var(--blue);color:#fff;box-shadow:0 8px 24px rgba(37,99,235,.45)}
+  .hA .btn-out{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.3)}
+  .hA svg{width:100%;height:auto;filter:drop-shadow(0 12px 30px rgba(0,0,0,.4))}
+  .routeLine{stroke:#3b82f6;stroke-width:5;fill:none;stroke-linecap:round;stroke-dasharray:8 12;animation:dash 1.4s linear infinite}
+  @keyframes dash{to{stroke-dashoffset:-40}}
+  .truck{font-size:30px;offset-path:path('M40 230 C 140 120, 280 300, 420 130');offset-rotate:0deg;animation:drive 5s ease-in-out infinite}
+  @keyframes drive{0%{offset-distance:0%}55%{offset-distance:100%}100%{offset-distance:100%}}
+  .pinA{animation:drop .6s ease both}
+  @keyframes drop{0%{transform:translateY(-18px);opacity:0}100%{transform:translateY(0);opacity:1}}
+  @media(max-width:860px){.hA .inner{grid-template-columns:1fr;padding:48px 0}.hA h1{font-size:34px}}
+
+  /* ================= HERO B — Tractări cu platformă (camion + contoare) ================= */
+  .hB{background:linear-gradient(180deg,#f0fdf4,#fff);color:var(--ink);overflow:hidden}
+  .hB .inner{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;padding:64px 0}
+  .hB .kicker{color:var(--green);font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:13px}
+  .hB h1{font-size:46px;margin:10px 0 14px}
+  .hB h1 em{font-style:normal;color:var(--green)}
+  .hB p{color:var(--muted);font-size:18px;max-width:480px;margin-bottom:22px}
+  .hB .btn-green{background:var(--green);color:#fff;box-shadow:0 8px 22px rgba(5,150,105,.35)}
+  .hB .stats{display:flex;gap:30px;margin-top:30px}
+  .hB .stat b{font-size:30px;font-weight:800;color:var(--green);display:block}
+  .hB .stat span{font-size:13px;color:var(--muted)}
+  .hB .scene{position:relative;height:230px;background:linear-gradient(180deg,#dcfce7,#fff);border-radius:22px;overflow:hidden;border:1px solid #bbf7d0}
+  .hB .ground{position:absolute;bottom:42px;left:0;right:0;height:4px;background:#86efac}
+  .hB .flatbed{position:absolute;bottom:46px;font-size:74px;animation:rollin 3.5s ease-out infinite}
+  @keyframes rollin{0%{left:-30%}45%{left:34%}100%{left:34%}}
+  .hB .smallcar{position:absolute;bottom:52px;left:18%;font-size:40px;opacity:0;animation:loadcar 3.5s ease-out infinite}
+  @keyframes loadcar{0%,50%{opacity:0;transform:translateY(0)}65%{opacity:1}100%{opacity:1;transform:translateY(-22px) translateX(60px)}}
+  .hB .wheelmark{position:absolute;bottom:40px;width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.15);animation:fade 3.5s linear infinite}
+  @media(max-width:860px){.hB .inner{grid-template-columns:1fr;padding:46px 0}.hB h1{font-size:33px}.hB .stats{gap:20px}}
+
+  /* ================= HERO C — Probleme comune (titlu care se schimbă + pini) ================= */
+  .hC{background:#fff;color:var(--ink);overflow:hidden;border-top:1px solid var(--line)}
+  .hC .inner{display:grid;grid-template-columns:1.05fr .95fr;gap:30px;align-items:center;padding:64px 0}
+  .hC h1{font-size:46px;margin-bottom:8px}
+  .hC .rotator{color:var(--blue);display:inline-block;min-height:1.1em}
+  .hC .cursor{display:inline-block;width:3px;height:.95em;background:var(--blue);margin-left:2px;vertical-align:-2px;animation:caret .8s steps(1) infinite}
+  @keyframes caret{50%{opacity:0}}
+  .hC p{color:var(--muted);font-size:18px;max-width:500px;margin:14px 0 20px}
+  .hC .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+  .hC .chip{background:#eff6ff;color:var(--blue);border:1px solid #bfdbfe;padding:7px 13px;border-radius:100px;font-size:13px;font-weight:600}
+  .hC .btn-blue{background:var(--blue);color:#fff;box-shadow:0 8px 22px rgba(37,99,235,.32)}
+  .hC .radar{position:relative;width:300px;height:300px;margin:0 auto;border-radius:50%;background:radial-gradient(circle,#eff6ff,#fff);border:1px solid var(--line)}
+  .hC .radar::before,.hC .radar::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(37,99,235,.25);animation:ring 3s ease-out infinite}
+  .hC .radar::after{animation-delay:1.5s}
+  @keyframes ring{0%{transform:scale(.3);opacity:.8}100%{transform:scale(1);opacity:0}}
+  .hC .me{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:30px}
+  .hC .pinC{position:absolute;font-size:24px;opacity:0;animation:pop 4s ease-in-out infinite}
+  .hC .p1{top:18%;left:24%;animation-delay:.4s}.hC .p2{top:30%;right:16%;animation-delay:1s}.hC .p3{bottom:20%;left:30%;animation-delay:1.6s}.hC .p4{bottom:26%;right:22%;animation-delay:2.2s}
+  @keyframes pop{0%,10%{opacity:0;transform:scale(.4)}20%,70%{opacity:1;transform:scale(1)}85%,100%{opacity:0;transform:scale(.8)}}
+  @media(max-width:860px){.hC .inner{grid-template-columns:1fr;padding:46px 0}.hC h1{font-size:32px}}
+</style>
+</head>
+<body>
+
+<!-- ===================== HERO A ===================== -->
+<div class="label-bar"><b>Varianta A</b> — Non-stop / urgență · <span class="seo">SEO: „depanare auto non-stop", „asistență rutieră 24/7", „urgență"</span> · animație: rută trasată + camion în mișcare</div>
+<section class="hA">
+  <div class="grid-bg"></div>
+  <div class="wrap inner">
+    <div>
+      <span class="badge"><span class="dot"></span> Depanatori activi acum în zona ta</span>
+      <h1>Depanare auto <span class="grad">non-stop</span>, ajutor pe drum în câteva minute</h1>
+      <p>Asistență rutieră 24/7: ceri ajutor dintr-un buton, vezi depanatorul venind spre tine pe hartă și știi prețul din prima. Fără telefoane, fără așteptare.</p>
+      <div class="cta">
+        <a href="client/" class="btn btn-blue">🚗 Cheamă acum</a>
+        <a href="depanator/" class="btn btn-out">🔧 Sunt depanator</a>
+      </div>
+    </div>
+    <div>
+      <svg viewBox="0 0 460 300" role="img" aria-label="Hartă cu rută animată">
+        <path class="routeLine" d="M40 230 C 140 120, 280 300, 420 130"/>
+        <g class="pinA" style="animation-delay:.1s"><circle cx="40" cy="230" r="13" fill="#3b82f6" stroke="#fff" stroke-width="4"/><text x="40" y="235" font-size="13" text-anchor="middle">🚗</text></g>
+        <g class="pinA" style="animation-delay:.5s"><circle cx="420" cy="130" r="13" fill="#10b981" stroke="#fff" stroke-width="4"/><text x="420" y="135" font-size="13" text-anchor="middle">🏁</text></g>
+        <text class="truck">🚛</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== HERO B ===================== -->
+<div class="label-bar"><b>Varianta B</b> — Tractări cu platformă · <span class="seo">SEO: „tractări auto", „platformă tractare", „transport mașină avariată"</span> · animație: camion care încarcă mașina + contoare</div>
+<section class="hB">
+  <div class="wrap inner">
+    <div>
+      <div class="kicker">Tractări & transport auto</div>
+      <h1>Tractări auto cu <em>platformă</em>, oriunde în oraș</h1>
+      <p>Mașină avariată, accident sau nu mai pornește? Trimitem o platformă de tractare la locația ta și o ducem în siguranță unde ai nevoie.</p>
+      <a href="client/" class="btn btn-green">🚛 Cere o platformă</a>
+      <div class="stats">
+        <div class="stat"><b data-count="2400">0</b><span>tractări realizate</span></div>
+        <div class="stat"><b data-count="120">0</b><span>depanatori parteneri</span></div>
+        <div class="stat"><b data-count="9" data-suffix=" min">0</b><span>timp mediu de sosire</span></div>
+      </div>
+    </div>
+    <div class="scene">
+      <div class="ground"></div>
+      <div class="smallcar">🚗</div>
+      <div class="flatbed">🛻</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== HERO C ===================== -->
+<div class="label-bar"><b>Varianta C</b> — Probleme comune / local · <span class="seo">SEO: „baterie descărcată", „pană de cauciuc", „pornire la rece", „depanator lângă mine"</span> · animație: titlu care se schimbă + radar cu pini</div>
+<section class="hC">
+  <div class="wrap inner">
+    <div>
+      <h1><span class="rotator" id="rot">Baterie descărcată?</span><span class="cursor"></span></h1>
+      <h1 style="font-size:46px">Cheamă un depanator lângă tine.</h1>
+      <p>Indiferent de problemă, găsim cel mai apropiat depanator disponibil și ți-l trimitem în câteva minute — cu preț afișat dinainte.</p>
+      <div class="chips">
+        <span class="chip">🔋 Baterie descărcată</span>
+        <span class="chip">🛞 Pană de cauciuc</span>
+        <span class="chip">❄️ Pornire la rece</span>
+        <span class="chip">⛽ Rămas fără combustibil</span>
+        <span class="chip">🔑 Chei blocate în mașină</span>
+      </div>
+      <a href="client/" class="btn btn-blue">📍 Găsește depanator lângă mine</a>
+    </div>
+    <div>
+      <div class="radar">
+        <span class="me">🚗</span>
+        <span class="pinC p1">🔧</span><span class="pinC p2">🛻</span><span class="pinC p3">🔧</span><span class="pinC p4">🚛</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Contoare (Hero B)
+  document.querySelectorAll('[data-count]').forEach(el=>{
+    const end=+el.dataset.count, suf=el.dataset.suffix||(end>1000?'+':''), dur=1600; let t0=null;
+    const step=t=>{ if(!t0)t0=t; const p=Math.min((t-t0)/dur,1); el.textContent=Math.floor(p*end).toLocaleString('ro-RO')+suf; if(p<1)requestAnimationFrame(step); };
+    new IntersectionObserver((e,o)=>{ if(e[0].isIntersecting){requestAnimationFrame(step);o.disconnect();} }).observe(el);
+  });
+  // Titlu rotativ (Hero C)
+  const words=['Baterie descărcată?','Pană de cauciuc?','Nu mai pornește?','Rămas în pană?','Accident ușor?'];
+  let i=0; const rot=document.getElementById('rot');
+  setInterval(()=>{ i=(i+1)%words.length; rot.style.opacity=0; setTimeout(()=>{rot.textContent=words[i];rot.style.opacity=1;},200); },2200);
+  rot.style.transition='opacity .2s';
+</script>
+</body>
+</html>
