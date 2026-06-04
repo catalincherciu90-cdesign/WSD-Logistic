@@ -15,8 +15,8 @@ ALLOWED_ORIGIN = "*"
 directory = "./public"
 binding = "ASSETS"
 
-# Baza de date D1. Creeaza una cu `wrangler d1 create depanauto` si pune ID-ul aici.
+# Baza de date D1. Provizionata deja (regiune EEUR).
 [[d1_databases]]
 binding = "DB"
 database_name = "depanauto"
-database_id = "PUNE_AICI_DATABASE_ID"
+database_id = "9c38c00f-6224-4147-bf8e-fc570096e1d8"
