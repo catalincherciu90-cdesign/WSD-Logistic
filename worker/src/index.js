@@ -330,14 +330,15 @@ async function h_get_status(request, env, p) {
 
   if (user.role === 'client') {
     const r = await env.DB.prepare(
-      "SELECT r.*, u.lat AS dep_lat, u.lng AS dep_lng, u.name AS dep_name, u.phone AS dep_phone, " +
+      "SELECT r.*, CAST((julianday('now') - julianday(r.created_at)) * 86400 AS INTEGER) AS waiting_seconds, " +
+      "u.lat AS dep_lat, u.lng AS dep_lng, u.name AS dep_name, u.phone AS dep_phone, " +
       "dp.vehicle_plate, dp.vehicle_type, dp.vehicle_brand, dp.license_number, dp.rating, dp.total_jobs " +
       "FROM requests r LEFT JOIN users u ON u.token = r.depanator_token " +
       "LEFT JOIN depanator_profiles dp ON dp.user_token = r.depanator_token " +
       "WHERE r.client_token = ? AND r.status IN ('waiting','accepted') ORDER BY r.created_at DESC LIMIT 1"
     ).bind(token).first();
     if (r) {
-      response.active_request = { id: r.id, status: r.status, price_ron: r.price_ron, distance_km: r.distance_km, problem_type: r.problem_type, problem_desc: r.problem_desc };
+      response.active_request = { id: r.id, status: r.status, price_ron: r.price_ron, distance_km: r.distance_km, problem_type: r.problem_type, problem_desc: r.problem_desc, waiting_seconds: r.waiting_seconds };
       if (r.status === 'accepted') {
         if (r.dep_lat) response.other_location = { lat: parseFloat(r.dep_lat), lng: parseFloat(r.dep_lng) };
         response.depanator_info = {

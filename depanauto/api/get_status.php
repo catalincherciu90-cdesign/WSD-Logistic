@@ -44,7 +44,8 @@ $response['depanatori_online'] = (int)$stmt->fetch()['cnt'];
 if ($user['role'] === 'client') {
     // Cererea activa a clientului
     $stmt = $db->prepare("
-        SELECT r.*, u.lat as dep_lat, u.lng as dep_lng,
+        SELECT r.*, TIMESTAMPDIFF(SECOND, r.created_at, NOW()) AS waiting_seconds,
+               u.lat as dep_lat, u.lng as dep_lng,
                u.name as dep_name, u.phone as dep_phone,
                dp.vehicle_plate, dp.vehicle_type, dp.vehicle_brand,
                dp.license_number, dp.rating, dp.total_jobs
@@ -65,6 +66,7 @@ if ($user['role'] === 'client') {
             'distance_km' => $request['distance_km'],
             'problem_type' => $request['problem_type'],
             'problem_desc' => $request['problem_desc'],
+            'waiting_seconds' => (int)$request['waiting_seconds'],
         ];
         if ($request['status'] === 'accepted') {
             if ($request['dep_lat']) {
