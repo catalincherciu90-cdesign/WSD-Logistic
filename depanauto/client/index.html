@@ -152,6 +152,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .problem-send { width: 100%; padding: 14px; font-size: 15px; font-weight: 700; border: none; border-radius: 13px; background: #2563eb; color: #fff; cursor: pointer; }
 .problem-send:disabled { opacity: .5; cursor: not-allowed; }
 .problem-cancel { width: 100%; padding: 12px; font-size: 14px; font-weight: 600; border: none; background: none; color: #777; cursor: pointer; margin-top: 4px; }
+#wait-notice { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; }
+#wait-notice .wait-title { font-size: 14px; font-weight: 700; color: #9a3412; margin-bottom: 4px; }
+#wait-notice .wait-text { font-size: 13px; color: #9a5524; line-height: 1.5; }
 
 #toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: #111; color: #fff; padding: 10px 20px; border-radius: 100px; font-size: 13px; z-index: 200; display: none; white-space: nowrap; }
 .pulse { animation: pulse 1.4s infinite; }
@@ -291,6 +294,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div id="message-banner">
     <div class="msg-from">🔧 Mesaj de la depanator</div>
     <div class="msg-text" id="message-text"></div>
+  </div>
+  <div id="wait-notice">
+    <div class="wait-title">⏳ Durează mai mult decât de obicei</div>
+    <div class="wait-text" id="wait-text"></div>
   </div>
   <div id="depanator-card">
     <div class="dep-header">
@@ -506,6 +513,7 @@ function updateUI(data) {
         document.getElementById('problem-val').textContent=t;
         probRow.style.display='flex';
     } else { probRow.style.display='none'; }
+    const waitNotice=document.getElementById('wait-notice');
     if(!req){
         activeRequest=null;
         badge.textContent='Inactiv'; badge.className=''; updateDepanatorCard(null); document.getElementById('message-banner').style.display='none';
@@ -513,14 +521,23 @@ function updateUI(data) {
         document.getElementById('dist-val').textContent='—';
         document.getElementById('eta-val').textContent='—';
         document.getElementById('price-val').textContent='—';
+        waitNotice.style.display='none';
         if(depMarker){map.removeLayer(depMarker);depMarker=null;}
         if(routeLine){map.removeLayer(routeLine);routeLine=null;}
     } else if(req.status==='waiting') {
         activeRequest=req;
         badge.innerHTML='<span class="pulse">●</span> Se caută...'; badge.className='waiting'; updateDepanatorCard(null);
         btn.textContent='Anulează cererea'; btn.className='btn btn-danger'; btn.onclick=cancelRequest;
+        if((req.waiting_seconds||0) >= SEARCH_TIMEOUT_SEC){
+            const n=data.depanatori_online||0;
+            document.getElementById('wait-text').textContent = n>0
+                ? 'Sunt '+n+' depanator'+(n===1?'':'i')+' online, dar niciunul nu a acceptat încă. Cererea ta rămâne activă — te anunțăm imediat ce cineva o preia. Poți continua să aștepți sau să anulezi.'
+                : 'Momentan nu este niciun depanator online. Cererea rămâne activă și vei fi anunțat imediat ce un depanator devine disponibil. Poți continua să aștepți sau să anulezi și să încerci mai târziu.';
+            waitNotice.style.display='block';
+        } else { waitNotice.style.display='none'; }
     } else if(req.status==='accepted') {
         activeRequest=req;
+        waitNotice.style.display='none';
         badge.textContent='● Depanator pe drum'; badge.className='active'; if(data.depanator_info) updateDepanatorCard(data.depanator_info);
         btn.textContent='Anulează cererea'; btn.className='btn btn-danger'; btn.onclick=cancelRequest;
         if(req.distance_km){
@@ -600,6 +617,7 @@ const PROBLEMS=[
     {v:'altele',icon:'🔧',label:'Altă problemă'},
 ];
 const PROBLEM_LABELS=Object.fromEntries(PROBLEMS.map(p=>[p.v,p.icon+' '+p.label]));
+const SEARCH_TIMEOUT_SEC=120; // dupa 2 min fara acceptare, aratam notificarea
 let selectedProblem=null;
 
 function mainAction() {

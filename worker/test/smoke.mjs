@@ -46,6 +46,7 @@ r = await call('create_request.php', { token: cliTok, lat: '44.43', lng: '26.10'
 
 r = await call('get_status.php', { token: cliTok }, 'GET'); A(r.body.active_request && r.body.active_request.status === 'waiting', 'client vede cerere waiting');
 A(r.body.active_request.problem_type === 'baterie' && r.body.active_request.problem_desc === 'Nu face contact dimineata', 'clientul vede tipul problemei pe cererea proprie');
+A(typeof r.body.active_request.waiting_seconds === 'number' && r.body.active_request.waiting_seconds >= 0, 'cererea waiting include waiting_seconds (pt timeout cautare)');
 r = await call('get_status.php', { token: depTok }, 'GET'); A(r.body.waiting_requests.length === 1, 'depanator vede 1 cerere in asteptare');
 A(r.body.waiting_requests[0].problem_type === 'baterie' && r.body.waiting_requests[0].problem_desc === 'Nu face contact dimineata', 'depanatorul vede tipul problemei pe cererea in asteptare');
 
