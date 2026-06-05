@@ -139,6 +139,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 #cancel-inner .cancel-note { background: #fee2e2; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #991b1b; margin-bottom: 16px; }
 .cancel-confirm-btn { width: 100%; padding: 13px; font-size: 15px; font-weight: 600; border: none; border-radius: 12px; background: #dc2626; color: #fff; cursor: pointer; margin-bottom: 8px; }
 .cancel-back-btn { width: 100%; padding: 13px; font-size: 15px; font-weight: 600; border: none; border-radius: 12px; background: #f5f5f5; color: #333; cursor: pointer; }
+#problem-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
+#problem-modal.open { display: flex; }
+#problem-inner { background: #fff; width: 100%; max-width: 480px; border-radius: 20px 20px 0 0; padding: 22px 20px calc(20px + env(safe-area-inset-bottom)); }
+#problem-inner h3 { font-size: 17px; font-weight: 700; color: #111; margin-bottom: 4px; }
+#problem-inner .sub { font-size: 13px; color: #777; margin-bottom: 14px; }
+.problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.problem-opt { display: flex; align-items: center; gap: 9px; padding: 13px 12px; border: 1.5px solid #e5e5e5; border-radius: 13px; font-size: 14px; font-weight: 600; color: #222; cursor: pointer; background: #fff; text-align: left; }
+.problem-opt .pico { font-size: 20px; line-height: 1; }
+.problem-opt.sel { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
+#problem-desc { width: 100%; padding: 11px 13px; font-size: 14px; border: 1.5px solid #e5e5e5; border-radius: 12px; outline: none; resize: none; font-family: inherit; margin-bottom: 14px; }
+.problem-send { width: 100%; padding: 14px; font-size: 15px; font-weight: 700; border: none; border-radius: 13px; background: #2563eb; color: #fff; cursor: pointer; }
+.problem-send:disabled { opacity: .5; cursor: not-allowed; }
+.problem-cancel { width: 100%; padding: 12px; font-size: 14px; font-weight: 600; border: none; background: none; color: #777; cursor: pointer; margin-top: 4px; }
 
 #toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: #111; color: #fff; padding: 10px 20px; border-radius: 100px; font-size: 13px; z-index: 200; display: none; white-space: nowrap; }
 .pulse { animation: pulse 1.4s infinite; }
@@ -263,6 +276,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </div>
 </div>
 
+<div id="problem-modal">
+  <div id="problem-inner">
+    <h3>Ce problemă ai?</h3>
+    <p class="sub">Ajută depanatorul să vină pregătit.</p>
+    <div class="problem-grid" id="problem-grid"></div>
+    <textarea id="problem-desc" rows="2" maxlength="300" placeholder="Detalii (opțional): ex. roata față dreapta, mașina e în parcare subterană…"></textarea>
+    <button class="problem-send" id="problem-send" onclick="submitRequest()" disabled>Trimite cererea</button>
+    <button class="problem-cancel" onclick="closeProblemModal()">Renunță</button>
+  </div>
+</div>
+
 <div id="bottom-panel">
   <div id="message-banner">
     <div class="msg-from">🔧 Mesaj de la depanator</div>
@@ -279,6 +303,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="dep-detail"><span>Vehicul</span><span id="dep-vehicle">—</span></div>
     <div class="dep-detail"><span>Nr. înmatriculare</span><span id="dep-plate">—</span></div>
     <a id="dep-phone-btn" class="dep-phone-btn" href="#">📞 Sună depanatorul</a>
+  </div>
+  <div class="info-row" id="problem-row" style="display:none">
+    <span class="info-label">Problemă</span>
+    <span class="info-value" id="problem-val">—</span>
   </div>
   <div class="info-row">
     <span class="info-label">Depanatori disponibili</span>
@@ -471,6 +499,13 @@ function updateUI(data) {
     const req=data.active_request;
     const badge=document.getElementById('status-badge');
     const btn=document.getElementById('main-btn');
+    const probRow=document.getElementById('problem-row');
+    if(req&&req.problem_type){
+        let t=PROBLEM_LABELS[req.problem_type]||req.problem_type;
+        if(req.problem_desc) t+=' — '+req.problem_desc;
+        document.getElementById('problem-val').textContent=t;
+        probRow.style.display='flex';
+    } else { probRow.style.display='none'; }
     if(!req){
         activeRequest=null;
         badge.textContent='Inactiv'; badge.className=''; updateDepanatorCard(null); document.getElementById('message-banner').style.display='none';
@@ -555,17 +590,58 @@ async function checkMessages(requestId) {
     } catch(e){}
 }
 
-async function mainAction() {
+const PROBLEMS=[
+    {v:'pana',icon:'🛞',label:'Pană de cauciuc'},
+    {v:'baterie',icon:'🔋',label:'Baterie descărcată'},
+    {v:'nu_porneste',icon:'🔑',label:'Nu pornește'},
+    {v:'tractare',icon:'🚚',label:'Tractare'},
+    {v:'combustibil',icon:'⛽',label:'Fără combustibil'},
+    {v:'accident',icon:'💥',label:'Accident'},
+    {v:'altele',icon:'🔧',label:'Altă problemă'},
+];
+const PROBLEM_LABELS=Object.fromEntries(PROBLEMS.map(p=>[p.v,p.icon+' '+p.label]));
+let selectedProblem=null;
+
+function mainAction() {
     if(!myLat){toast('Așteptăm GPS-ul...');return;}
     if(!token) return;
-    document.getElementById('main-btn').disabled=true;
+    selectedProblem=null;
+    document.getElementById('problem-desc').value='';
+    document.getElementById('problem-send').disabled=true;
+    const grid=document.getElementById('problem-grid');
+    grid.innerHTML='';
+    PROBLEMS.forEach(p=>{
+        const b=document.createElement('button');
+        b.className='problem-opt'; b.dataset.v=p.v;
+        b.innerHTML='<span class="pico">'+p.icon+'</span><span>'+p.label+'</span>';
+        b.onclick=()=>selectProblem(p.v);
+        grid.appendChild(b);
+    });
+    document.getElementById('problem-modal').className='open';
+}
+
+function selectProblem(v) {
+    selectedProblem=v;
+    document.querySelectorAll('.problem-opt').forEach(el=>el.classList.toggle('sel',el.dataset.v===v));
+    document.getElementById('problem-send').disabled=false;
+}
+
+function closeProblemModal() {
+    document.getElementById('problem-modal').className='';
+}
+
+async function submitRequest() {
+    if(!selectedProblem){toast('Alege tipul problemei');return;}
+    if(!myLat||!token) return;
+    const desc=document.getElementById('problem-desc').value.trim();
+    const sendBtn=document.getElementById('problem-send');
+    sendBtn.disabled=true;
     try {
-        const res=await fetch(API_BASE+'/create_request.php',{method:'POST',body:new URLSearchParams({token,lat:myLat,lng:myLng})});
+        const res=await fetch(API_BASE+'/create_request.php',{method:'POST',body:new URLSearchParams({token,lat:myLat,lng:myLng,problem_type:selectedProblem,description:desc})});
         const data=await res.json();
-        if(data.success){toast('Cerere trimisă!');poll();}
-        else{toast('Eroare: '+data.error);}
-    } catch(e){toast('Eroare conexiune');}
-    document.getElementById('main-btn').disabled=false;
+        if(data.success){closeProblemModal();toast('Cerere trimisă!');poll();}
+        else{toast('Eroare: '+data.error);sendBtn.disabled=false;}
+    } catch(e){toast('Eroare conexiune');sendBtn.disabled=false;}
 }
 
 function cancelRequest() {

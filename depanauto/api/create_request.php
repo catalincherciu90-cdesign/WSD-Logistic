@@ -31,12 +31,18 @@ $stmt = $db->prepare("SELECT id FROM requests WHERE client_token = ? AND status 
 $stmt->execute([$token]);
 if ($stmt->fetch()) jsonError('Ai deja o cerere activa');
 
+// Tipul problemei (optional, dar recomandat) + descriere scurta
+$allowedProblems = ['pana', 'baterie', 'nu_porneste', 'tractare', 'combustibil', 'accident', 'altele'];
+$problemType = in_array($_POST['problem_type'] ?? '', $allowedProblems, true) ? $_POST['problem_type'] : null;
+$problemDesc = mb_substr(trim($_POST['description'] ?? ''), 0, 300);
+if ($problemDesc === '') $problemDesc = null;
+
 // Creeaza cererea
 $stmt = $db->prepare("
-    INSERT INTO requests (client_token, status, client_lat, client_lng, created_at)
-    VALUES (?, 'waiting', ?, ?, NOW())
+    INSERT INTO requests (client_token, status, client_lat, client_lng, problem_type, problem_desc, created_at)
+    VALUES (?, 'waiting', ?, ?, ?, ?, NOW())
 ");
-$stmt->execute([$token, $lat, $lng]);
+$stmt->execute([$token, $lat, $lng, $problemType, $problemDesc]);
 $requestId = $db->lastInsertId();
 
 jsonResponse(['success' => true, 'request_id' => $requestId]);

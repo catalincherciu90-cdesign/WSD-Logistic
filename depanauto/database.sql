@@ -72,6 +72,8 @@ CREATE TABLE IF NOT EXISTS requests (
     status          ENUM('waiting', 'accepted', 'completed', 'cancelled') DEFAULT 'waiting',
     client_lat      DOUBLE DEFAULT NULL,
     client_lng      DOUBLE DEFAULT NULL,
+    problem_type    VARCHAR(32) DEFAULT NULL,
+    problem_desc    VARCHAR(300) DEFAULT NULL,
     distance_km     DOUBLE DEFAULT NULL,
     price_ron       DOUBLE DEFAULT NULL,
     cancelled_by    ENUM('client', 'depanator') DEFAULT NULL,

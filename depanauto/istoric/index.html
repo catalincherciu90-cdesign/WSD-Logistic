@@ -181,6 +181,8 @@ async function loadHistory() {
     } catch(e) { document.getElementById('loading').textContent='Eroare la încărcare.'; }
 }
 
+const PROBLEM_LABELS={pana:'🛞 Pană de cauciuc',baterie:'🔋 Baterie descărcată',nu_porneste:'🔑 Nu pornește',tractare:'🚚 Tractare',combustibil:'⛽ Fără combustibil',accident:'💥 Accident',altele:'🔧 Altă problemă'};
+
 function buildCard(c, role) {
     const otherName = role==='client' ? (c.depanator_name||'—') : (c.client_name||'—');
     const vehicleInfo = role==='client' ? (c.vehicle_brand ? c.vehicle_type+' '+c.vehicle_brand : '—') : (c.car_brand ? c.car_brand+' '+(c.car_model||'') : '—');
@@ -214,6 +216,7 @@ function buildCard(c, role) {
         <span class="curse-status s-${c.status}">${statusLabel(c.status)}</span>
       </div>
       <div class="curse-body">
+        ${c.problem_type ? `<div class="curse-row"><span class="curse-label">Problemă</span><span class="curse-value">${PROBLEM_LABELS[c.problem_type]||c.problem_type}</span></div>` : ''}
         <div class="curse-row"><span class="curse-label">${vehicleLabel}</span><span class="curse-value">${vehicleInfo}</span></div>
         <div class="curse-row"><span class="curse-label">Distanță</span><span class="curse-value">${c.distance_km ? parseFloat(c.distance_km).toFixed(1)+' km' : '—'}</span></div>
         <div class="curse-row"><span class="curse-label">Durată</span><span class="curse-value">${formatDuration(c.accepted_at,c.completed_at)}</span></div>
