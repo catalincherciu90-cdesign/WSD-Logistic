@@ -63,6 +63,8 @@ if ($user['role'] === 'client') {
             'status' => $request['status'],
             'price_ron' => $request['price_ron'],
             'distance_km' => $request['distance_km'],
+            'problem_type' => $request['problem_type'],
+            'problem_desc' => $request['problem_desc'],
         ];
         if ($request['status'] === 'accepted') {
             if ($request['dep_lat']) {
@@ -111,6 +113,8 @@ if ($user['role'] === 'client') {
             'status' => $accepted['status'],
             'price_ron' => $accepted['price_ron'],
             'distance_km' => $accepted['distance_km'],
+            'problem_type' => $accepted['problem_type'],
+            'problem_desc' => $accepted['problem_desc'],
         ];
         if ($accepted['client_lat2']) {
             $response['other_location'] = [

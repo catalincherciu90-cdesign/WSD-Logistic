@@ -103,6 +103,9 @@ const AVG_SPEED_KMH = 40;      // viteza presupusa pt. ETA cand nu avem durata r
 
 const round2 = (n) => Math.round(n * 100) / 100;
 
+// Tipuri de problema permise la o cerere (valoarea stocata in DB).
+const PROBLEM_TYPES = new Set(['pana', 'baterie', 'nu_porneste', 'tractare', 'combustibil', 'accident', 'altele']);
+
 function haversine(lat1, lng1, lat2, lng2) {
   const R = 6371, toRad = (d) => (d * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
@@ -288,9 +291,11 @@ async function h_create_request(request, env, p, ip) {
   if (!user || user.role !== 'client') return err(env, 'Doar clientii pot trimite cereri');
   const active = await env.DB.prepare("SELECT id FROM requests WHERE client_token = ? AND status IN ('waiting','accepted')").bind(token).first();
   if (active) return err(env, 'Ai deja o cerere activa');
+  const problemType = PROBLEM_TYPES.has(p.problem_type) ? p.problem_type : null;
+  const problemDesc = (p.description || '').trim().slice(0, 300) || null;
   const res = await env.DB.prepare(
-    "INSERT INTO requests (client_token, status, client_lat, client_lng, created_at) VALUES (?,'waiting',?,?,datetime('now'))"
-  ).bind(token, lat, lng).run();
+    "INSERT INTO requests (client_token, status, client_lat, client_lng, problem_type, problem_desc, created_at) VALUES (?,'waiting',?,?,?,?,datetime('now'))"
+  ).bind(token, lat, lng, problemType, problemDesc).run();
   return ok(env, { request_id: res.meta.last_row_id });
 }
 
@@ -332,7 +337,7 @@ async function h_get_status(request, env, p) {
       "WHERE r.client_token = ? AND r.status IN ('waiting','accepted') ORDER BY r.created_at DESC LIMIT 1"
     ).bind(token).first();
     if (r) {
-      response.active_request = { id: r.id, status: r.status, price_ron: r.price_ron, distance_km: r.distance_km };
+      response.active_request = { id: r.id, status: r.status, price_ron: r.price_ron, distance_km: r.distance_km, problem_type: r.problem_type, problem_desc: r.problem_desc };
       if (r.status === 'accepted') {
         if (r.dep_lat) response.other_location = { lat: parseFloat(r.dep_lat), lng: parseFloat(r.dep_lng) };
         response.depanator_info = {
@@ -354,7 +359,7 @@ async function h_get_status(request, env, p) {
       "LEFT JOIN users u ON u.token = r.client_token WHERE r.depanator_token = ? AND r.status = 'accepted' ORDER BY r.accepted_at DESC LIMIT 1"
     ).bind(token).first();
     if (acc) {
-      response.active_request = { id: acc.id, status: acc.status, price_ron: acc.price_ron, distance_km: acc.distance_km };
+      response.active_request = { id: acc.id, status: acc.status, price_ron: acc.price_ron, distance_km: acc.distance_km, problem_type: acc.problem_type, problem_desc: acc.problem_desc };
       if (acc.client_lat2) response.other_location = { lat: parseFloat(acc.client_lat2), lng: parseFloat(acc.client_lng2) };
     }
   }

@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS requests (
     status          TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting','accepted','completed','cancelled')),
     client_lat      REAL,
     client_lng      REAL,
+    problem_type    TEXT,
+    problem_desc    TEXT,
     distance_km     REAL,
     price_ron       REAL,
     cancelled_by    TEXT,

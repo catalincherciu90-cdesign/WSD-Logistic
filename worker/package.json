@@ -11,6 +11,7 @@
     "deploy": "wrangler deploy",
     "dev": "bash build.sh && wrangler dev",
     "db:init": "wrangler d1 execute depanauto --remote --file=./schema.sql",
+    "db:migrate": "wrangler d1 execute depanauto --remote --file=./migrations/001_problem_type.sql",
     "hash": "node scripts/hash-password.mjs"
   },
   "devDependencies": {

@@ -41,11 +41,13 @@ r = await call('auth.php', { action: 'login', email: 'cli@x.ro', password: 'gres
 
 await call('update_location.php', { token: cliTok, lat: '44.43', lng: '26.10' });
 await call('update_location.php', { token: depTok, lat: '44.44', lng: '26.11' });
-r = await call('create_request.php', { token: cliTok, lat: '44.43', lng: '26.10' }); A(r.body.success && r.body.request_id, 'create_request'); const reqId = r.body.request_id;
+r = await call('create_request.php', { token: cliTok, lat: '44.43', lng: '26.10', problem_type: 'baterie', description: 'Nu face contact dimineata' }); A(r.body.success && r.body.request_id, 'create_request'); const reqId = r.body.request_id;
 r = await call('create_request.php', { token: cliTok, lat: '44.43', lng: '26.10' }); A(!r.body.success, 'a doua cerere activa respinsa');
 
 r = await call('get_status.php', { token: cliTok }, 'GET'); A(r.body.active_request && r.body.active_request.status === 'waiting', 'client vede cerere waiting');
+A(r.body.active_request.problem_type === 'baterie' && r.body.active_request.problem_desc === 'Nu face contact dimineata', 'clientul vede tipul problemei pe cererea proprie');
 r = await call('get_status.php', { token: depTok }, 'GET'); A(r.body.waiting_requests.length === 1, 'depanator vede 1 cerere in asteptare');
+A(r.body.waiting_requests[0].problem_type === 'baterie' && r.body.waiting_requests[0].problem_desc === 'Nu face contact dimineata', 'depanatorul vede tipul problemei pe cererea in asteptare');
 
 r = await call('action.php', { token: depTok, action: 'accept_request', request_id: reqId, dep_lat: '44.44', dep_lng: '26.11' });
 A(r.body.success && r.body.price_ron >= 25, 'accept_request cu pret >= minim (' + r.body.price_ron + ' RON)');
