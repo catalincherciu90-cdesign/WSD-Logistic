@@ -68,4 +68,19 @@ r = await call('admin.php', { action: 'login', email: 'a@x.ro', password: 'admin
 r = await call('admin.php', { action: 'get_stats', admin_token: aTok }, 'GET'); A(r.body.stats.total_requests === 1 && r.body.stats.completed_requests === 1, 'admin stats corecte');
 r = await call('admin.php', { action: 'get_stats', admin_token: 'gresit' }, 'GET'); A(r.status === 401, 'admin fara sesiune -> 401');
 
+// --- Regresie: calculatorul de distanta (la final, ca sa nu afecteze statisticile) ---
+// get_route fara ORS -> fallback Haversine, cu distanta + durata pozitive si polyline (gol)
+r = await call('get_route.php', { from_lat: '44.43', from_lng: '26.10', to_lat: '44.50', to_lng: '26.20' }, 'GET');
+A(r.body.success && r.body.source === 'haversine' && r.body.distance_km > 0 && r.body.duration_min > 0 && Array.isArray(r.body.polyline), 'get_route fallback Haversine cu durata');
+// coordonate invalide -> eroare
+r = await call('get_route.php', { from_lat: '999', from_lng: '26', to_lat: '44', to_lng: '26' }, 'GET'); A(!r.body.success, 'get_route respinge coordonate invalide');
+// 0,0 (Null Island / GPS lipsa) -> eroare
+r = await call('get_route.php', { from_lat: '0', from_lng: '0', to_lat: '44', to_lng: '26' }, 'GET'); A(!r.body.success, 'get_route respinge 0,0 (GPS lipsa)');
+// plafon de distanta la acceptare: depanator prea departe -> respins, fara pret aberant in DB
+r = await call('auth.php', { action: 'register', role: 'client', name: 'Far', email: 'far@x.ro', phone: '072', password: 'parola1', consent: '1' }); const farTok = r.body.token;
+await call('update_location.php', { token: farTok, lat: '44.43', lng: '26.10' });
+r = await call('create_request.php', { token: farTok, lat: '44.43', lng: '26.10' }); const farReq = r.body.request_id;
+r = await call('action.php', { token: depTok, action: 'accept_request', request_id: farReq, dep_lat: '52.52', dep_lng: '13.40' });
+A(!r.body.success, 'accept respins cand distanta depaseste plafonul de siguranta');
+
 console.log('\nTOATE TESTELE AU TRECUT ✅');

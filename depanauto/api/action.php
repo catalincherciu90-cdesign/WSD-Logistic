@@ -36,12 +36,20 @@ switch ($action) {
             jsonError('GPS indisponibil. Asteapta cateva secunde si incearca din nou.');
         }
 
-        $db->prepare("UPDATE users SET lat = ?, lng = ? WHERE token = ?")->execute([$useLat, $useLng, $token]);
+        // Aceeasi rutare ca harta -> distanta afisata = distanta facturata.
+        $route = routeDistance($useLat, $useLng, $request['client_lat'], $request['client_lng']);
+        if ($route === null) {
+            jsonError('Coordonate GPS invalide. Asteapta cateva secunde si incearca din nou.');
+        }
+        if ($route['distance_km'] > MAX_DISTANCE_KM) {
+            jsonError('Distanta calculata este neverosimil de mare (GPS instabil). Reincearca.');
+        }
 
-        $settings = getSettings($db);
-        $dist = haversine($useLat, $useLng, $request['client_lat'], $request['client_lng']);
-        $distRoute = $dist * 1.28;
-        $price = max($settings['price_min'], $settings['price_fixed'] + $distRoute * $settings['price_per_km']);
+        $settings  = getSettings($db);
+        $distRoute = $route['distance_km'];
+        $price     = computePrice($distRoute, $settings);
+
+        $db->prepare("UPDATE users SET lat = ?, lng = ? WHERE token = ?")->execute([$useLat, $useLng, $token]);
 
         $stmt = $db->prepare("
             UPDATE requests 
@@ -109,21 +117,5 @@ switch ($action) {
     default:
         jsonError('Actiune necunoscuta');
 }
-
-function haversine($lat1, $lng1, $lat2, $lng2) {
-    $R = 6371;
-    $dLat = deg2rad($lat2 - $lat1);
-    $dLng = deg2rad($lng2 - $lng1);
-    $a = sin($dLat/2)*sin($dLat/2) + cos(deg2rad($lat1))*cos(deg2rad($lat2))*sin($dLng/2)*sin($dLng/2);
-    return $R * 2 * atan2(sqrt($a), sqrt(1-$a));
-}
-
-function getSettings($db) {
-    $stmt = $db->prepare("SELECT setting_key, setting_value FROM settings");
-    $stmt->execute();
-    $rows = $stmt->fetchAll();
-    $out = [];
-    foreach ($rows as $r) $out[$r['setting_key']] = (float)$r['setting_value'];
-    return $out;
-}
+// haversine() / getSettings() / computePrice() / routeDistance() sunt definite in config.php
 ?>
