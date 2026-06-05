@@ -122,15 +122,5 @@ if ($user['role'] === 'client') {
 }
 
 jsonResponse($response);
-
-function getSettings($db) {
-    $stmt = $db->prepare("SELECT setting_key, setting_value FROM settings");
-    $stmt->execute();
-    $rows = $stmt->fetchAll();
-    $out = [];
-    foreach ($rows as $r) {
-        $out[$r['setting_key']] = (float)$r['setting_value'];
-    }
-    return $out;
-}
+// getSettings() este definita in config.php
 ?>

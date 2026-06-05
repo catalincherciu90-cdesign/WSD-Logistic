@@ -93,18 +93,81 @@ async function verifyPassword(password, stored) {
   } catch (_) { return false; }
 }
 
-// ---------- Geo & settings ----------
+// ---------- Geo, tarifare & rutare ----------
+// Valori implicite folosite cand lipsesc randuri in `settings` (protejeaza
+// impotriva preturilor 0). Trebuie sa fie identice cu seed-ul din schema.sql.
+const PRICE_DEFAULTS = { price_per_km: 4.5, price_fixed: 10, price_min: 25 };
+const ROUTE_FACTOR = 1.28;     // linie dreapta -> drum real (cand ORS nu raspunde)
+const MAX_DISTANCE_KM = 300;   // plafon de siguranta: peste atata = GPS aberant
+const AVG_SPEED_KMH = 40;      // viteza presupusa pt. ETA cand nu avem durata reala
+
+const round2 = (n) => Math.round(n * 100) / 100;
+
 function haversine(lat1, lng1, lat2, lng2) {
   const R = 6371, toRad = (d) => (d * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
+
+// Coordonata plauzibila: in limite si nu 0,0 ("Null Island" = GPS lipsa).
+function validCoord(lat, lng) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+  if (Math.abs(lat) < 1e-4 && Math.abs(lng) < 1e-4) return false;
+  return true;
+}
+
+// Pretul cursei pentru o distanta data (km) si setarile de tarifare.
+const computePrice = (distanceKm, s) =>
+  Math.max(s.price_min, s.price_fixed + distanceKm * s.price_per_km);
+
+// Setarile de tarifare, cu valori implicite garantate (niciun tarif <= 0).
 async function getSettings(env) {
-  const { results } = await env.DB.prepare('SELECT setting_key, setting_value FROM settings').all();
-  const out = {};
-  for (const r of results) out[r.setting_key] = parseFloat(r.setting_value);
+  const out = { ...PRICE_DEFAULTS };
+  try {
+    const { results } = await env.DB.prepare('SELECT setting_key, setting_value FROM settings').all();
+    for (const r of results) {
+      const v = parseFloat(r.setting_value);
+      if (Number.isFinite(v)) out[r.setting_key] = v;
+    }
+  } catch (_) { /* folosim default-urile */ }
+  for (const k of Object.keys(PRICE_DEFAULTS)) {
+    if (!Number.isFinite(out[k]) || out[k] <= 0) out[k] = PRICE_DEFAULTS[k];
+  }
   return out;
+}
+
+// Distanta A -> B: incearca drumul real (OpenRouteService), cu fallback la
+// Haversine * ROUTE_FACTOR. Sursa unica pentru harta SI pentru tarifare, ca
+// distanta afisata sa fie aceeasi cu cea facturata.
+// Returneaza { distance_km, duration_min, polyline, source } sau null (coord. invalide).
+async function routeDistance(env, fromLat, fromLng, toLat, toLng) {
+  fromLat = Number(fromLat); fromLng = Number(fromLng);
+  toLat = Number(toLat); toLng = Number(toLng);
+  if (!validCoord(fromLat, fromLng) || !validCoord(toLat, toLng)) return null;
+
+  const fallback = (source = 'haversine') => {
+    const dist = haversine(fromLat, fromLng, toLat, toLng) * ROUTE_FACTOR;
+    return { distance_km: round2(dist), duration_min: Math.round((dist / AVG_SPEED_KMH) * 60), polyline: [], source };
+  };
+
+  if (!env.ORS_KEY) return fallback();
+  try {
+    const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${env.ORS_KEY}&start=${fromLng},${fromLat}&end=${toLng},${toLat}`;
+    const res = await fetch(url, { headers: { 'Accept': 'application/geo+json, application/json' } });
+    if (res.status !== 200) return fallback();
+    const data = await res.json();
+    const seg = data?.features?.[0]?.properties?.segments?.[0];
+    if (!seg || typeof seg.distance !== 'number') return fallback();
+    const geometry = data.features[0].geometry?.coordinates || [];
+    return {
+      distance_km: round2(seg.distance / 1000),
+      duration_min: Math.round((seg.duration || 0) / 60),
+      polyline: geometry.map((c) => [c[1], c[0]]),
+      source: 'ors',
+    };
+  } catch (_) { return fallback(); }
 }
 async function getUser(env, token) {
   return env.DB.prepare('SELECT * FROM users WHERE token = ?').bind(token).first();
@@ -314,16 +377,23 @@ async function h_action(request, env, p) {
     const useLat = (depLat !== null && depLat !== 0) ? depLat : user.lat;
     const useLng = (depLng !== null && depLng !== 0) ? depLng : user.lng;
     if (!useLat || !useLng || !r.client_lat || !r.client_lng) return err(env, 'GPS indisponibil. Asteapta cateva secunde si incearca din nou.');
-    await env.DB.prepare('UPDATE users SET lat = ?, lng = ? WHERE token = ?').bind(useLat, useLng, token).run();
+
+    // Aceeasi rutare ca harta -> distanta afisata = distanta facturata.
+    const route = await routeDistance(env, useLat, useLng, r.client_lat, r.client_lng);
+    if (!route) return err(env, 'Coordonate GPS invalide. Asteapta cateva secunde si incearca din nou.');
+    if (route.distance_km > MAX_DISTANCE_KM) return err(env, 'Distanta calculata este neverosimil de mare (GPS instabil). Reincearca.');
+
     const s = await getSettings(env);
-    const distRoute = haversine(useLat, useLng, r.client_lat, r.client_lng) * 1.28;
-    const price = Math.max(s.price_min, s.price_fixed + distRoute * s.price_per_km);
+    const distRoute = route.distance_km;
+    const price = computePrice(distRoute, s);
+
+    await env.DB.prepare('UPDATE users SET lat = ?, lng = ? WHERE token = ?').bind(useLat, useLng, token).run();
     const upd = await env.DB.prepare(
       "UPDATE requests SET status='accepted', depanator_token=?, distance_km=?, price_ron=?, accepted_at=datetime('now') WHERE id=? AND status='waiting'"
-    ).bind(token, Math.round(distRoute * 100) / 100, Math.round(price * 100) / 100, requestId).run();
+    ).bind(token, round2(distRoute), round2(price), requestId).run();
     if (upd.meta.changes === 0) return err(env, 'Nu s-a putut accepta cererea');
     await notifyUserByToken(env, r.client_token, 'Depanator pe drum! 🚗', `${user.name || 'Un depanator'} ți-a acceptat cererea și vine spre tine.`, { type: 'accepted', request_id: requestId });
-    return ok(env, { distance_km: Math.round(distRoute * 100) / 100, price_ron: Math.round(price * 100) / 100 });
+    return ok(env, { distance_km: round2(distRoute), price_ron: round2(price) });
   }
 
   if (action === 'cancel_request') {
@@ -456,28 +526,9 @@ async function h_history(request, env, p) {
 }
 
 async function h_get_route(request, env, p) {
-  const fromLat = fnum(p.from_lat), fromLng = fnum(p.from_lng), toLat = fnum(p.to_lat), toLng = fnum(p.to_lng);
-  if (fromLat === null || fromLng === null || toLat === null || toLng === null) return err(env, 'Coordonate invalide');
-  const fallback = () => {
-    const dist = haversine(fromLat, fromLng, toLat, toLng) * 1.28;
-    return ok(env, { distance_km: Math.round(dist * 100) / 100, duration_min: Math.round((dist / 40) * 60), source: 'haversine' });
-  };
-  if (!env.ORS_KEY) return fallback();
-  try {
-    const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${env.ORS_KEY}&start=${fromLng},${fromLat}&end=${toLng},${toLat}`;
-    const res = await fetch(url, { headers: { 'Accept': 'application/geo+json, application/json' } });
-    if (res.status !== 200) return fallback();
-    const data = await res.json();
-    const seg = data?.features?.[0]?.properties?.segments?.[0];
-    if (!seg) return fallback();
-    const geometry = data.features[0].geometry?.coordinates || [];
-    return ok(env, {
-      distance_km: Math.round((seg.distance / 1000) * 100) / 100,
-      duration_min: Math.round(seg.duration / 60),
-      polyline: geometry.map((c) => [c[1], c[0]]),
-      source: 'ors',
-    });
-  } catch (_) { return fallback(); }
+  const route = await routeDistance(env, fnum(p.from_lat), fnum(p.from_lng), fnum(p.to_lat), fnum(p.to_lng));
+  if (!route) return err(env, 'Coordonate invalide');
+  return ok(env, route);
 }
 
 // Setari publice (preturi) — pentru landing page. Doar citire, fara token.
