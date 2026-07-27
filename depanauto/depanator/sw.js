@@ -48,6 +48,21 @@ self.addEventListener('fetch', event => {
         return;
     }
 
+    // Fisiere JS -> stale-while-revalidate (servim instant din cache, reimprospatam in fundal).
+    if (req.url.endsWith('.js')) {
+        event.respondWith(
+            caches.match(req).then(cached => {
+                const fetched = fetch(req).then(res => {
+                    const copy = res.clone();
+                    caches.open(CACHE_NAME).then(c => c.put(req, copy)).catch(()=>{});
+                    return res;
+                }).catch(() => cached);
+                return cached || fetched;
+            })
+        );
+        return;
+    }
+
     event.respondWith(caches.match(req).then(cached => cached || fetch(req)));
 });
 

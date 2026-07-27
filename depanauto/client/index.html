@@ -490,7 +490,7 @@ async function sendLocation() {
     try { await fetch(API_BASE+'/update_location.php',{method:'POST',body:new URLSearchParams({token,lat:myLat,lng:myLng})}); } catch(e){}
 }
 
-function startPolling(){poll();setInterval(poll,3000);}
+function startPolling(){(function loop(){poll().finally(()=>setTimeout(loop,3000));})();} // fara suprapunere: reprogramam abia dupa ce poll-ul se termina
 
 async function poll() {
     if(!token) return;

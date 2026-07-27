@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS requests (
     problem_desc    TEXT,
     distance_km     REAL,
     price_ron       REAL,
-    cancelled_by    TEXT,
+    cancelled_by    TEXT CHECK (cancelled_by IS NULL OR cancelled_by IN ('client','depanator')),
     cancel_reason   TEXT,
     created_at      TEXT NOT NULL DEFAULT (datetime('now')),
     accepted_at     TEXT,
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS ratings (
     request_id      INTEGER NOT NULL UNIQUE,
     client_token    TEXT NOT NULL,
     depanator_token TEXT NOT NULL,
-    stars           INTEGER NOT NULL,
+    stars           INTEGER NOT NULL CHECK (stars BETWEEN 1 AND 5),
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -117,6 +117,7 @@ INSERT OR IGNORE INTO settings (setting_key, setting_value) VALUES
     ('price_min',    '25.00');
 
 CREATE INDEX IF NOT EXISTS idx_users_role_online  ON users(role, online);
+CREATE INDEX IF NOT EXISTS idx_users_role_seen     ON users(role, online, last_seen);
 CREATE INDEX IF NOT EXISTS idx_users_status       ON users(status);
 CREATE INDEX IF NOT EXISTS idx_requests_status    ON requests(status);
 CREATE INDEX IF NOT EXISTS idx_requests_client    ON requests(client_token);

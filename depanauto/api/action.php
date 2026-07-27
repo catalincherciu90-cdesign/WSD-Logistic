@@ -79,7 +79,7 @@ switch ($action) {
         break;
 
     case 'cancel_request':
-        $reason = trim($_POST['reason'] ?? '');
+        $reason = mb_substr(trim($_POST['reason'] ?? ''), 0, 255);
         $requestId = (int)($_POST['request_id'] ?? 0);
         if ($user['role'] === 'client') {
             $stmt = $db->prepare("

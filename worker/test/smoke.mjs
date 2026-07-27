@@ -116,6 +116,8 @@ r = await call('action.php', { token: depNou, action: 'accept_request', request_
 // C4: finalizarea cu request_id inchide DOAR cursa indicata (req3 ramane waiting)
 r = await call('action.php', { token: depNou, action: 'complete_request', request_id: req2 }); A(r.body.success, 'C4: finalizare corecta cu request_id');
 A(sdb.prepare("SELECT status FROM requests WHERE id=?").get(req3).status === 'waiting', 'C4: cealalta cerere a ramas neatinsa (waiting)');
+// Val4 #6: rating non-numeric este respins (nu ocolit ca NaN)
+r = await call('rating.php', { token: cli2, request_id: req2, stars: 'abc' }); A(!r.body.success, 'Val4: rating non-numeric respins');
 
 // I9: get_route intra in rate-limit (endpoint public catre API extern platit)
 let rlHit = false;
