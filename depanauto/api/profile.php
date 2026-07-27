@@ -50,12 +50,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $model = trim($_POST['car_model'] ?? '');
         $year  = trim($_POST['car_year'] ?? '');
 
+        // Upsert: creeaza randul daca nu exista (ex. cont via register.php) - I10.
         $stmt = $db->prepare("
-            UPDATE client_profiles
-            SET car_plate = ?, car_brand = ?, car_model = ?, car_year = ?
-            WHERE user_token = ?
+            INSERT INTO client_profiles (user_token, car_plate, car_brand, car_model, car_year)
+            VALUES (?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE car_plate = VALUES(car_plate), car_brand = VALUES(car_brand),
+                car_model = VALUES(car_model), car_year = VALUES(car_year)
         ");
-        $stmt->execute([$plate, $brand, $model, $year, $token]);
+        $stmt->execute([$token, $plate, $brand, $model, $year]);
 
     } else {
         $license   = trim($_POST['license_number'] ?? '');
@@ -65,13 +67,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $vCapacity = trim($_POST['vehicle_capacity'] ?? '');
         $bio       = trim($_POST['bio'] ?? '');
 
+        // Upsert: creeaza randul daca nu exista (ex. cont via register.php) - I10.
         $stmt = $db->prepare("
-            UPDATE depanator_profiles
-            SET license_number = ?, vehicle_plate = ?, vehicle_type = ?,
-                vehicle_brand = ?, vehicle_capacity = ?, bio = ?
-            WHERE user_token = ?
+            INSERT INTO depanator_profiles (user_token, license_number, vehicle_plate, vehicle_type, vehicle_brand, vehicle_capacity, bio)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE license_number = VALUES(license_number), vehicle_plate = VALUES(vehicle_plate),
+                vehicle_type = VALUES(vehicle_type), vehicle_brand = VALUES(vehicle_brand),
+                vehicle_capacity = VALUES(vehicle_capacity), bio = VALUES(bio)
         ");
-        $stmt->execute([$license, $vPlate, $vType, $vBrand, $vCapacity, $bio, $token]);
+        $stmt->execute([$token, $license, $vPlate, $vType, $vBrand, $vCapacity, $bio]);
     }
 
     jsonResponse(['success' => true]);

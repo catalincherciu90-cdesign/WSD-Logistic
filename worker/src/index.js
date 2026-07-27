@@ -58,17 +58,16 @@ const fnum = (v) => { const n = parseFloat(v); return Number.isFinite(n) ? n : n
 async function rateLimit(env, bucket, max, windowSec, ip) {
   const key = `${bucket}_${ip}`.replace(/[^a-zA-Z0-9_]/g, '_');
   const now = Math.floor(Date.now() / 1000);
-  const row = await env.DB.prepare('SELECT count, reset_at FROM rate_limits WHERE bucket = ?').bind(key).first();
-  if (!row || row.reset_at <= now) {
-    await env.DB.prepare(
-      'INSERT INTO rate_limits (bucket, count, reset_at) VALUES (?,1,?) ' +
-      'ON CONFLICT(bucket) DO UPDATE SET count = 1, reset_at = excluded.reset_at'
-    ).bind(key, now + windowSec).run();
-    return true;
-  }
-  const next = row.count + 1;
-  await env.DB.prepare('UPDATE rate_limits SET count = ? WHERE bucket = ?').bind(next, key).run();
-  return next <= max;
+  // Un singur statement atomic: incrementeaza (sau reseteaza daca fereastra a expirat)
+  // si intoarce noul contor. Elimina fereastra TOCTOU la cereri concurente (I11).
+  const row = await env.DB.prepare(
+    'INSERT INTO rate_limits (bucket, count, reset_at) VALUES (?, 1, ?) ' +
+    'ON CONFLICT(bucket) DO UPDATE SET ' +
+    'count = CASE WHEN rate_limits.reset_at <= ? THEN 1 ELSE rate_limits.count + 1 END, ' +
+    'reset_at = CASE WHEN rate_limits.reset_at <= ? THEN ? ELSE rate_limits.reset_at END ' +
+    'RETURNING count'
+  ).bind(key, now + windowSec, now, now, now + windowSec).first();
+  return row ? row.count <= max : true;
 }
 
 // ---------- Password hashing (PBKDF2, Web Crypto) ----------
@@ -450,12 +449,18 @@ async function h_profile(request, env, p) {
   // POST
   const name = (p.name || '').trim(), phone = (p.phone || '').trim();
   if (name) await env.DB.prepare('UPDATE users SET name = ?, phone = ? WHERE token = ?').bind(name, phone, token).run();
+  // Upsert: functioneaza si daca randul de profil nu exista inca (ex. cont creat
+  // prin register.php) - altfel datele de profil s-ar pierde silentios (I10).
   if (user.role === 'client') {
-    await env.DB.prepare('UPDATE client_profiles SET car_plate=?, car_brand=?, car_model=?, car_year=? WHERE user_token=?')
-      .bind((p.car_plate || '').trim().toUpperCase(), (p.car_brand || '').trim(), (p.car_model || '').trim(), (p.car_year || '').trim(), token).run();
+    await env.DB.prepare(
+      'INSERT INTO client_profiles (user_token, car_plate, car_brand, car_model, car_year) VALUES (?,?,?,?,?) ' +
+      'ON CONFLICT(user_token) DO UPDATE SET car_plate=excluded.car_plate, car_brand=excluded.car_brand, car_model=excluded.car_model, car_year=excluded.car_year'
+    ).bind(token, (p.car_plate || '').trim().toUpperCase(), (p.car_brand || '').trim(), (p.car_model || '').trim(), (p.car_year || '').trim()).run();
   } else {
-    await env.DB.prepare('UPDATE depanator_profiles SET license_number=?, vehicle_plate=?, vehicle_type=?, vehicle_brand=?, vehicle_capacity=?, bio=? WHERE user_token=?')
-      .bind((p.license_number || '').trim(), (p.vehicle_plate || '').trim().toUpperCase(), (p.vehicle_type || '').trim(), (p.vehicle_brand || '').trim(), (p.vehicle_capacity || '').trim(), (p.bio || '').trim(), token).run();
+    await env.DB.prepare(
+      'INSERT INTO depanator_profiles (user_token, license_number, vehicle_plate, vehicle_type, vehicle_brand, vehicle_capacity, bio) VALUES (?,?,?,?,?,?,?) ' +
+      'ON CONFLICT(user_token) DO UPDATE SET license_number=excluded.license_number, vehicle_plate=excluded.vehicle_plate, vehicle_type=excluded.vehicle_type, vehicle_brand=excluded.vehicle_brand, vehicle_capacity=excluded.vehicle_capacity, bio=excluded.bio'
+    ).bind(token, (p.license_number || '').trim(), (p.vehicle_plate || '').trim().toUpperCase(), (p.vehicle_type || '').trim(), (p.vehicle_brand || '').trim(), (p.vehicle_capacity || '').trim(), (p.bio || '').trim()).run();
   }
   return ok(env);
 }
@@ -537,7 +542,9 @@ async function h_history(request, env, p) {
   return ok(env, { role: user.role, name: user.name, history: rows, total, page, stats });
 }
 
-async function h_get_route(request, env, p) {
+async function h_get_route(request, env, p, ip) {
+  // Endpoint public care atinge un API extern platit (ORS) - limitam abuzul (I9).
+  if (!(await rateLimit(env, 'get_route', 60, 60, ip))) return err(env, 'Prea multe cereri. Incearca mai tarziu.', 429);
   const route = await routeDistance(env, fnum(p.from_lat), fnum(p.from_lng), fnum(p.to_lat), fnum(p.to_lng));
   if (!route) return err(env, 'Coordonate invalide');
   return ok(env, route);

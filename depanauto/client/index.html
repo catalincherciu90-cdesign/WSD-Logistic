@@ -340,7 +340,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <script>
 const API_BASE = 'https://wsdlogistics.ro/depanauto/api';
 let token = localStorage.getItem('depanauto_client_token');
-let map, myMarker, depMarker, routeLine;
+let map, myMarker, depMarker, routeLine, routeGlow;
+let gpsDenied = false;
 let myLat = null, myLng = null;
 let activeRequest = null;
 let settings = {};
@@ -475,8 +476,13 @@ function startGPS() {
             myMarker=L.marker([myLat,myLng],{icon}).addTo(map);
             map.setView([myLat,myLng],15);
         } else { myMarker.setLatLng([myLat,myLng]); }
+        gpsDenied=false;
         sendLocation();
-    },()=>{},{enableHighAccuracy:true,maximumAge:5000});
+    },(e)=>{
+        // Locatie refuzata/indisponibila: anuntam clar in loc sa blocam tacut (I5).
+        gpsDenied = e && e.code === 1;
+        toast(gpsDenied ? 'Activează locația din setările browserului ca să poți cere depanare.' : 'Nu putem obține locația. Verifică GPS-ul.');
+    },{enableHighAccuracy:true,maximumAge:5000});
 }
 
 async function sendLocation() {
@@ -491,7 +497,7 @@ async function poll() {
     try {
         const res=await fetch(API_BASE+'/get_status.php?token='+token);
         const data=await res.json();
-        if(!data.success) return;
+        if(!data.success){ if((data.error||'').toLowerCase().includes('token')){toast('Sesiune expirată. Autentifică-te din nou.');doLogout();} return; }
         settings=data.settings||settings;
         updateUI(data);
         // Verifica mesaje noi cand cererea e activa
@@ -524,6 +530,7 @@ function updateUI(data) {
         waitNotice.style.display='none';
         if(depMarker){map.removeLayer(depMarker);depMarker=null;}
         if(routeLine){map.removeLayer(routeLine);routeLine=null;}
+        if(routeGlow){map.removeLayer(routeGlow);routeGlow=null;}
     } else if(req.status==='waiting') {
         activeRequest=req;
         badge.innerHTML='<span class="pulse">●</span> Se caută...'; badge.className='waiting'; updateDepanatorCard(null);
@@ -540,10 +547,10 @@ function updateUI(data) {
         waitNotice.style.display='none';
         badge.textContent='● Depanator pe drum'; badge.className='active'; if(data.depanator_info) updateDepanatorCard(data.depanator_info);
         btn.textContent='Anulează cererea'; btn.className='btn btn-danger'; btn.onclick=cancelRequest;
-        if(req.distance_km){
+        if(req.distance_km!=null){
             document.getElementById('dist-val').textContent=req.distance_km.toFixed(1)+' km';
             document.getElementById('eta-val').textContent=Math.round((req.distance_km/40)*60)+' min';
-            document.getElementById('price-val').textContent=req.price_ron.toFixed(2)+' RON';
+            document.getElementById('price-val').textContent=(req.price_ron!=null?req.price_ron.toFixed(2):'—')+' RON';
         }
         if(data.other_location) updateDepMarker(data.other_location.lat,data.other_location.lng);
     }
@@ -575,12 +582,13 @@ async function updateDepMarker(lat,lng) {
     if(!depMarker){depMarker=L.marker([lat,lng],{icon}).addTo(map);}else{depMarker.setLatLng([lat,lng]);}
     if(!myLat) return;
     if(routeLine) map.removeLayer(routeLine);
+    if(routeGlow) map.removeLayer(routeGlow);
     try {
         const res = await fetch(API_BASE+'/get_route.php?from_lat='+lat+'&from_lng='+lng+'&to_lat='+myLat+'&to_lng='+myLng);
         const data = await res.json();
         if(data.success && data.polyline && data.polyline.length > 0) {
+            routeGlow = L.polyline(data.polyline,{color:'#93c5fd',weight:10,opacity:0.2}).addTo(map);
             routeLine = L.polyline(data.polyline, {color:'#2563eb',weight:4,opacity:0.8}).addTo(map);
-            L.polyline(data.polyline,{color:'#93c5fd',weight:10,opacity:0.2}).addTo(map);
             // Actualizeaza distanta si ETA cu date reale
             document.getElementById('dist-val').textContent = data.distance_km.toFixed(1)+' km';
             document.getElementById('eta-val').textContent = data.duration_min+' min';
@@ -621,7 +629,7 @@ const SEARCH_TIMEOUT_SEC=120; // dupa 2 min fara acceptare, aratam notificarea
 let selectedProblem=null;
 
 function mainAction() {
-    if(!myLat){toast('Așteptăm GPS-ul...');return;}
+    if(!myLat){toast(gpsDenied ? 'Activează locația din setările browserului ca să poți cere depanare.' : 'Așteptăm GPS-ul...');return;}
     if(!token) return;
     selectedProblem=null;
     document.getElementById('problem-desc').value='';

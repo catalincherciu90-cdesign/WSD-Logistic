@@ -35,6 +35,8 @@ try {
 switch ($action) {
 
     case 'login':
+        // Anti brute-force pe parola de admin: max 10 incercari / minut / IP (I1).
+        rateLimit('admin_login', 10, 60);
         $email    = strtolower(trim($_POST['email'] ?? ''));
         $password = $_POST['password'] ?? '';
         if (empty($email) || empty($password)) jsonError('Email si parola sunt obligatorii');

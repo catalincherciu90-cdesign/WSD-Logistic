@@ -117,4 +117,12 @@ r = await call('action.php', { token: depNou, action: 'accept_request', request_
 r = await call('action.php', { token: depNou, action: 'complete_request', request_id: req2 }); A(r.body.success, 'C4: finalizare corecta cu request_id');
 A(sdb.prepare("SELECT status FROM requests WHERE id=?").get(req3).status === 'waiting', 'C4: cealalta cerere a ramas neatinsa (waiting)');
 
+// I9: get_route intra in rate-limit (endpoint public catre API extern platit)
+let rlHit = false;
+for (let i = 0; i < 65; i++) {
+  const rr = await call('get_route.php', { from_lat: '44.4', from_lng: '26.1', to_lat: '44.5', to_lng: '26.2' }, 'GET');
+  if (rr.status === 429) { rlHit = true; break; }
+}
+A(rlHit, 'I9: get_route intra in rate-limit dupa prea multe cereri');
+
 console.log('\nTOATE TESTELE AU TRECUT ✅');
