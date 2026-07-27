@@ -35,6 +35,23 @@ if (!defined('MAX_DISTANCE_KM')) define('MAX_DISTANCE_KM', (float)(getenv('MAX_D
 // Viteza medie presupusa pt. ETA cand nu avem durata reala (km/h).
 if (!defined('AVG_SPEED_KMH'))   define('AVG_SPEED_KMH',   (float)(getenv('AVG_SPEED_KMH')   ?: 40));
 
+// Nu expune erorile PHP catre client (ar rupe raspunsul JSON si ar scurge detalii).
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+error_reporting(E_ALL);
+
+// Orice exceptie / eroare necaptata -> raspuns JSON 500 curat (nu stack trace).
+set_exception_handler(function ($e) {
+    error_log('DepanAuto uncaught: ' . $e->getMessage());
+    if (!headers_sent()) {
+        http_response_code(500);
+        header('Content-Type: application/json; charset=utf-8');
+        header('Access-Control-Allow-Origin: ' . (defined('ALLOWED_ORIGIN') ? ALLOWED_ORIGIN : '*'));
+    }
+    echo json_encode(['success' => false, 'error' => 'Eroare interna de server']);
+    exit;
+});
+
 // Conectare la baza de date
 function getDB() {
     static $pdo = null;
@@ -109,6 +126,10 @@ function rateLimit($bucket, $maxRequests = 30, $windowSeconds = 60) {
         fwrite($fp, json_encode($data));
         flock($fp, LOCK_UN);
         fclose($fp);
+    } else {
+        // Nu putem scrie (director ne-scriabil / open_basedir): rate-limiting ar fi
+        // dezactivat silentios. Logam, ca sa fie vizibil in loc de "fail-open" tacut (I3).
+        error_log("DepanAuto rateLimit: nu pot scrie in $file - rate limiting inactiv pentru '$bucket'");
     }
 
     if ($data['count'] > $maxRequests) {

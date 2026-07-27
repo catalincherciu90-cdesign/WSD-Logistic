@@ -224,7 +224,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <script>
 const API_BASE = 'https://wsdlogistics.ro/depanauto/api';
 let token = localStorage.getItem('depanauto_dep_token');
-let map, myMarker, clientMarker, routeLine, swReg;
+let map, myMarker, clientMarker, routeLine, routeGlow, swReg;
+let routeFitDone = false;
 let myLat=null, myLng=null, isOnline=false, activeRequest=null;
 let waitingRequests=[], settings={}, hadRequests=false, deferredInstall=null;
 
@@ -360,7 +361,7 @@ function applyStatusWarn(){
     else if(myStatus==='suspended'){w.textContent='🚫 Contul tău este suspendat. Contactează administratorul.';w.style.display='block';}
     else{w.style.display='none';}
 }
-async function poll(){if(!token)return;try{const res=await fetch(API_BASE+'/get_status.php?token='+token);const data=await res.json();if(!data.success)return;settings=data.settings||settings;if(data.my_status){myStatus=data.my_status;applyStatusWarn();}const has=(data.waiting_requests||[]).length>0;if(has&&!hadRequests&&isOnline)playAlert();hadRequests=has;updateUI(data);}catch(e){}}
+async function poll(){if(!token)return;try{const res=await fetch(API_BASE+'/get_status.php?token='+token);const data=await res.json();if(!data.success){if((data.error||'').toLowerCase().includes('token')){toast('Sesiune expirată. Autentifică-te din nou.');doLogout();}return;}settings=data.settings||settings;if(data.my_status){myStatus=data.my_status;applyStatusWarn();}const has=(data.waiting_requests||[]).length>0;if(has&&!hadRequests&&isOnline)playAlert();hadRequests=has;updateUI(data);}catch(e){}}
 
 const PROBLEM_LABELS={pana:'🛞 Pană de cauciuc',baterie:'🔋 Baterie descărcată',nu_porneste:'🔑 Nu pornește',tractare:'🚚 Tractare',combustibil:'⛽ Fără combustibil',accident:'💥 Accident',altele:'🔧 Altă problemă'};
 function showDepProblem(o){
@@ -371,9 +372,9 @@ function showDepProblem(o){
 function updateUI(data){
     waitingRequests=data.waiting_requests||[];const req=data.active_request;
     const ab=document.getElementById('accept-btn'),cb=document.getElementById('complete-btn'),xb=document.getElementById('cancel-btn'),rc=document.getElementById('request-card');
-    if(req&&req.status==='accepted'){activeRequest=req;document.getElementById('status-text').textContent='În deplasare'; document.getElementById('notify-section').style.display='block'; document.getElementById('dep-dist-row').style.display='flex'; document.getElementById('dep-eta-row').style.display='flex';document.getElementById('earn-val').textContent=req.price_ron.toFixed(2)+' RON';ab.style.display='none';cb.style.display='block';xb.style.display='block';rc.style.display='none';showDepProblem(req);if(data.other_location)updateClientMarker(data.other_location.lat,data.other_location.lng);}
+    if(req&&req.status==='accepted'){activeRequest=req;document.getElementById('status-text').textContent='În deplasare'; document.getElementById('notify-section').style.display='block'; document.getElementById('dep-dist-row').style.display='flex'; document.getElementById('dep-eta-row').style.display='flex';document.getElementById('earn-val').textContent=(req.price_ron!=null?req.price_ron.toFixed(2):'—')+' RON';ab.style.display='none';cb.style.display='block';xb.style.display='block';rc.style.display='none';showDepProblem(req);if(data.other_location)updateClientMarker(data.other_location.lat,data.other_location.lng);}
     else if(waitingRequests.length>0&&isOnline&&!req){const f=waitingRequests[0];rc.style.display='block';activeRequest=f;ab.className='btn btn-accept';ab.style.display='block';cb.style.display='none';xb.style.display='none';document.getElementById('status-text').innerHTML='<span class="pulse">●</span> Cerere nouă!';if(myLat&&f.client_lat2){const d=haversine(myLat,myLng,f.client_lat2,f.client_lng2)*1.28;const p=Math.max(settings.price_min,settings.price_fixed+d*settings.price_per_km);document.getElementById('req-dist').textContent=d.toFixed(1)+' km';document.getElementById('req-earn').textContent=p.toFixed(2)+' RON';updateClientMarker(f.client_lat2,f.client_lng2);}showDepProblem(f);}
-    else{activeRequest=null;rc.style.display='none';ab.className='btn btn-accept btn-disabled';ab.style.display='block';cb.style.display='none';xb.style.display='none';document.getElementById('status-text').textContent=isOnline?'Online - aștept cereri':'Offline'; document.getElementById('notify-section').style.display='none'; document.getElementById('dep-dist-row').style.display='none'; document.getElementById('dep-eta-row').style.display='none'; document.getElementById('dep-dist-val').textContent='—'; document.getElementById('dep-eta-val').textContent='—';document.getElementById('earn-val').textContent='—';showDepProblem(null);if(clientMarker){map.removeLayer(clientMarker);clientMarker=null;}if(routeLine){map.removeLayer(routeLine);routeLine=null;}
+    else{activeRequest=null;rc.style.display='none';ab.className='btn btn-accept btn-disabled';ab.style.display='block';cb.style.display='none';xb.style.display='none';document.getElementById('status-text').textContent=isOnline?'Online - aștept cereri':'Offline'; document.getElementById('notify-section').style.display='none'; document.getElementById('dep-dist-row').style.display='none'; document.getElementById('dep-eta-row').style.display='none'; document.getElementById('dep-dist-val').textContent='—'; document.getElementById('dep-eta-val').textContent='—';document.getElementById('earn-val').textContent='—';showDepProblem(null);routeFitDone=false;if(clientMarker){map.removeLayer(clientMarker);clientMarker=null;}if(routeLine){map.removeLayer(routeLine);routeLine=null;}if(routeGlow){map.removeLayer(routeGlow);routeGlow=null;}
         updateWazeBtn(null, null);}
 }
 
@@ -389,23 +390,26 @@ async function updateClientMarker(lat,lng){
     if(!clientMarker){clientMarker=L.marker([lat,lng],{icon}).addTo(map);}else{clientMarker.setLatLng([lat,lng]);}
     updateWazeBtn(lat,lng);
     if(routeLine) map.removeLayer(routeLine);
+    if(routeGlow) map.removeLayer(routeGlow);
     if(!myLat) return;
+    // Incadram harta o singura data pe cursa, ca depanatorul sa poata naviga liber (I8).
+    const fitOnce = () => { if(!routeFitDone){ map.fitBounds([[myLat,myLng],[lat,lng]],{padding:[60,60]}); routeFitDone=true; } };
     try {
         const res = await fetch(API_BASE+'/get_route.php?from_lat='+myLat+'&from_lng='+myLng+'&to_lat='+lat+'&to_lng='+lng);
         const data = await res.json();
         if(data.success && data.polyline && data.polyline.length > 0) {
+            routeGlow = L.polyline(data.polyline,{color:'#34d399',weight:10,opacity:0.25}).addTo(map);
             routeLine = L.polyline(data.polyline,{color:'#059669',weight:5,opacity:0.9}).addTo(map);
-            L.polyline(data.polyline,{color:'#34d399',weight:10,opacity:0.25}).addTo(map);
             // Actualizeaza distanta si ETA in panelul depanatorului
             document.getElementById('dep-dist-val').textContent = data.distance_km.toFixed(1)+' km';
             document.getElementById('dep-eta-val').textContent = data.duration_min+' min';
         } else {
             routeLine = L.polyline([[myLat,myLng],[lat,lng]],{color:'#e85d3a',weight:3,opacity:0.6,dashArray:'8,6'}).addTo(map);
         }
-        map.fitBounds([[myLat,myLng],[lat,lng]],{padding:[60,60]});
+        fitOnce();
     } catch(e) {
         routeLine = L.polyline([[myLat,myLng],[lat,lng]],{color:'#059669',weight:5,opacity:0.9,dashArray:'8,6'}).addTo(map);
-        map.fitBounds([[myLat,myLng],[lat,lng]],{padding:[60,60]});
+        fitOnce();
     }
 }
 

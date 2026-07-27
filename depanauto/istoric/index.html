@@ -166,7 +166,14 @@ async function loadHistory() {
         const res = await fetch(API_BASE+'/history.php?token='+token);
         const data = await res.json();
         document.getElementById('loading').style.display='none';
-        if (!data.success) return;
+        if (!data.success) {
+            if ((data.error||'').toLowerCase().includes('token')) {
+                localStorage.removeItem('depanauto_client_token');
+                localStorage.removeItem('depanauto_dep_token');
+                window.location.href = '/depanauto/client/';
+            }
+            return;
+        }
         userRole = data.role;
         document.getElementById('stats-bar').style.display='flex';
         document.getElementById('stat-total').textContent = data.stats?.total||0;

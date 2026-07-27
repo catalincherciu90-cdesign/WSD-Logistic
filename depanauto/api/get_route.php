@@ -6,6 +6,9 @@
 
 require_once 'config.php';
 
+// Endpoint public care atinge un API extern platit (ORS) - limitam abuzul (I9).
+rateLimit('get_route', 60, 60);
+
 $fromLat = filter_var($_GET['from_lat'] ?? '', FILTER_VALIDATE_FLOAT);
 $fromLng = filter_var($_GET['from_lng'] ?? '', FILTER_VALIDATE_FLOAT);
 $toLat   = filter_var($_GET['to_lat'] ?? '', FILTER_VALIDATE_FLOAT);
