@@ -16,9 +16,11 @@ if (!in_array($role, ['client', 'depanator'])) {
 
 $token = bin2hex(random_bytes(32)); // 64 caractere hex
 
+// Depanatorii noi asteapta aprobarea adminului; clientii sunt activi imediat.
+$status = $role === 'depanator' ? 'pending' : 'active';
 $db = getDB();
-$stmt = $db->prepare("INSERT INTO users (token, role, online, last_seen) VALUES (?, ?, 1, NOW())");
-$stmt->execute([$token, $role]);
+$stmt = $db->prepare("INSERT INTO users (token, role, status, online, last_seen) VALUES (?, ?, ?, 1, NOW())");
+$stmt->execute([$token, $role, $status]);
 
 jsonResponse([
     'success' => true,

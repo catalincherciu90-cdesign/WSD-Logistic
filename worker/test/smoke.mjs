@@ -31,6 +31,8 @@ const A = (c, m) => { if (!c) { console.error('FAIL:', m); process.exit(1); } co
 
 let r = await call('auth.php', { action: 'register', role: 'depanator', name: 'Dep One', email: 'dep@x.ro', phone: '070', password: 'parola1', consent: '1' });
 A(r.body.success && r.body.token.length === 64, 'register depanator'); const depTok = r.body.token;
+A(sdb.prepare("SELECT status FROM users WHERE token=?").get(depTok).status === 'pending', 'depanator nou este pending (asteapta aprobare)');
+sdb.prepare("UPDATE users SET status='active' WHERE token=?").run(depTok); // aprobare admin (necesara ca sa poata accepta)
 r = await call('auth.php', { action: 'register', role: 'client', name: 'Cli One', email: 'cli@x.ro', phone: '071', password: 'parola1', consent: '1' });
 A(r.body.success, 'register client'); const cliTok = r.body.token;
 r = await call('auth.php', { action: 'register', role: 'client', name: 'X', email: 'y@x.ro', password: 'parola1' });
@@ -95,5 +97,24 @@ await call('update_location.php', { token: farTok, lat: '44.43', lng: '26.10' })
 r = await call('create_request.php', { token: farTok, lat: '44.43', lng: '26.10' }); const farReq = r.body.request_id;
 r = await call('action.php', { token: depTok, action: 'accept_request', request_id: farReq, dep_lat: '52.52', dep_lng: '13.40' });
 A(!r.body.success, 'accept respins cand distanta depaseste plafonul de siguranta');
+
+// --- Regresie Val 2 (aprobare conturi + integritate cursa) ---
+// C3: depanator nou e 'pending' si nu poate accepta pana la aprobare
+r = await call('auth.php', { action: 'register', role: 'depanator', name: 'Dep Nou', email: 'depnou@x.ro', phone: '074', password: 'parola1', consent: '1' }); const depNou = r.body.token;
+r = await call('get_status.php', { token: depNou }, 'GET'); A(r.body.my_status === 'pending', 'C3: get_status arata my_status=pending');
+r = await call('auth.php', { action: 'register', role: 'client', name: 'Cli2', email: 'cli2@x.ro', phone: '075', password: 'parola1', consent: '1' }); const cli2 = r.body.token;
+await call('update_location.php', { token: cli2, lat: '44.43', lng: '26.10' });
+r = await call('create_request.php', { token: cli2, lat: '44.43', lng: '26.10', problem_type: 'pana' }); const req2 = r.body.request_id;
+r = await call('action.php', { token: depNou, action: 'accept_request', request_id: req2, dep_lat: '44.44', dep_lng: '26.11' }); A(!r.body.success, 'C3: depanatorul pending NU poate accepta');
+sdb.prepare("UPDATE users SET status='active' WHERE token=?").run(depNou); // aprobare admin
+r = await call('action.php', { token: depNou, action: 'accept_request', request_id: req2, dep_lat: '44.44', dep_lng: '26.11' }); A(r.body.success, 'C3: dupa aprobare, depanatorul poate accepta');
+// C4: un depanator cu o cursa activa NU poate accepta a doua
+r = await call('auth.php', { action: 'register', role: 'client', name: 'Cli3', email: 'cli3@x.ro', phone: '076', password: 'parola1', consent: '1' }); const cli3 = r.body.token;
+await call('update_location.php', { token: cli3, lat: '44.45', lng: '26.12' });
+r = await call('create_request.php', { token: cli3, lat: '44.45', lng: '26.12', problem_type: 'baterie' }); const req3 = r.body.request_id;
+r = await call('action.php', { token: depNou, action: 'accept_request', request_id: req3, dep_lat: '44.44', dep_lng: '26.11' }); A(!r.body.success, 'C4: depanator cu cursa activa nu poate accepta alta');
+// C4: finalizarea cu request_id inchide DOAR cursa indicata (req3 ramane waiting)
+r = await call('action.php', { token: depNou, action: 'complete_request', request_id: req2 }); A(r.body.success, 'C4: finalizare corecta cu request_id');
+A(sdb.prepare("SELECT status FROM requests WHERE id=?").get(req3).status === 'waiting', 'C4: cealalta cerere a ramas neatinsa (waiting)');
 
 console.log('\nTOATE TESTELE AU TRECUT ✅');
