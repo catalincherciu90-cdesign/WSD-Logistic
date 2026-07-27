@@ -207,8 +207,10 @@ function routeDistance($fromLat, $fromLng, $toLat, $toLng) {
 
     if (!ORS_KEY || !function_exists('curl_init')) return $fallback();
 
-    $url = "https://api.openrouteservice.org/v2/directions/driving-car?api_key=" . ORS_KEY
-         . "&start={$fromLng},{$fromLat}&end={$toLng},{$toLat}";
+    // Cheia merge in header-ul Authorization (recomandat de ORS) - evita problemele
+    // de codare URL cand cheia contine caractere base64 (+ / =) si nu o expune in URL.
+    $url = "https://api.openrouteservice.org/v2/directions/driving-car"
+         . "?start={$fromLng},{$fromLat}&end={$toLng},{$toLat}";
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -216,7 +218,7 @@ function routeDistance($fromLat, $fromLng, $toLat, $toLng) {
         CURLOPT_CONNECTTIMEOUT => 4,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
-        CURLOPT_HTTPHEADER     => ['Accept: application/geo+json, application/json'],
+        CURLOPT_HTTPHEADER     => ['Accept: application/geo+json, application/json', 'Authorization: ' . ORS_KEY],
     ]);
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

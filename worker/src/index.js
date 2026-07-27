@@ -156,8 +156,10 @@ async function routeDistance(env, fromLat, fromLng, toLat, toLng) {
 
   if (!env.ORS_KEY) return fallback();
   try {
-    const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${env.ORS_KEY}&start=${fromLng},${fromLat}&end=${toLng},${toLat}`;
-    const res = await fetch(url, { headers: { 'Accept': 'application/geo+json, application/json' } });
+    // Cheia merge in header-ul Authorization (recomandat de ORS) - evita problemele
+    // de codare URL cand cheia contine caractere base64 (+ / =) si nu o expune in URL.
+    const url = `https://api.openrouteservice.org/v2/directions/driving-car?start=${fromLng},${fromLat}&end=${toLng},${toLat}`;
+    const res = await fetch(url, { headers: { 'Accept': 'application/geo+json, application/json', 'Authorization': env.ORS_KEY } });
     if (res.status !== 200) return fallback();
     const data = await res.json();
     const seg = data?.features?.[0]?.properties?.segments?.[0];
