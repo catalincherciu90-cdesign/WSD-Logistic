@@ -422,16 +422,6 @@ async function h_action(request, env, p) {
     return ok(env);
   }
 
-  if (action === 'update_settings') {
-    if (user.role !== 'depanator') return err(env, 'Acces interzis');
-    for (const field of ['price_per_km', 'price_fixed', 'price_min']) {
-      if (p[field] !== undefined) {
-        const val = fnum(p[field]);
-        if (val !== null && val >= 0) await env.DB.prepare('UPDATE settings SET setting_value = ? WHERE setting_key = ?').bind(String(Math.round(val * 100) / 100), field).run();
-      }
-    }
-    return ok(env);
-  }
   return err(env, 'Actiune necunoscuta');
 }
 
@@ -497,6 +487,9 @@ async function h_message(request, env, p) {
   }
   const requestId = parseInt(p.request_id || 0, 10);
   if (!requestId) return err(env, 'request_id lipsa');
+  // Doar partile din cursa pot citi mesajele (altfel: IDOR pe conversatii private).
+  const member = await env.DB.prepare('SELECT id FROM requests WHERE id = ? AND (client_token = ? OR depanator_token = ?)').bind(requestId, token, token).first();
+  if (!member) return err(env, 'Cerere negasita');
   const msgs = await env.DB.prepare('SELECT * FROM request_messages WHERE request_id = ? AND seen = 0 ORDER BY created_at ASC').bind(requestId).all();
   if (msgs.results.length) await env.DB.prepare('UPDATE request_messages SET seen = 1 WHERE request_id = ? AND seen = 0').bind(requestId).run();
   return ok(env, { messages: msgs.results });

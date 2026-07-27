@@ -48,6 +48,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $requestId = (int)($_GET['request_id'] ?? 0);
     if (!$requestId) jsonError('request_id lipsa');
 
+    // Doar partile din cursa pot citi mesajele (altfel: IDOR pe conversatii private).
+    $stmt = $db->prepare("SELECT id FROM requests WHERE id = ? AND (client_token = ? OR depanator_token = ?)");
+    $stmt->execute([$requestId, $token, $token]);
+    if (!$stmt->fetch()) jsonError('Cerere negasita');
+
     $stmt = $db->prepare("
         SELECT * FROM request_messages
         WHERE request_id = ? AND seen = 0
