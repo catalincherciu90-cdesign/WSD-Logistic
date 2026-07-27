@@ -411,7 +411,7 @@ async function h_action(request, env, p) {
   }
 
   if (action === 'cancel_request') {
-    const reason = (p.reason || '').trim();
+    const reason = (p.reason || '').trim().slice(0, 255);
     const requestId = parseInt(p.request_id || 0, 10);
     if (user.role === 'client') {
       await env.DB.prepare(
@@ -447,7 +447,9 @@ async function h_profile(request, env, p) {
     return ok(env, { role: user.role, name: user.name, email: user.email, phone: user.phone, profile: profile || {} });
   }
   // POST
-  const name = (p.name || '').trim(), phone = (p.phone || '').trim();
+  // Limite de lungime pe campurile text libere (aliniate la schema MySQL) - Val4 #7.
+  const clip = (v, n) => (v || '').trim().slice(0, n);
+  const name = clip(p.name, 120), phone = clip(p.phone, 30);
   if (name) await env.DB.prepare('UPDATE users SET name = ?, phone = ? WHERE token = ?').bind(name, phone, token).run();
   // Upsert: functioneaza si daca randul de profil nu exista inca (ex. cont creat
   // prin register.php) - altfel datele de profil s-ar pierde silentios (I10).
@@ -455,12 +457,12 @@ async function h_profile(request, env, p) {
     await env.DB.prepare(
       'INSERT INTO client_profiles (user_token, car_plate, car_brand, car_model, car_year) VALUES (?,?,?,?,?) ' +
       'ON CONFLICT(user_token) DO UPDATE SET car_plate=excluded.car_plate, car_brand=excluded.car_brand, car_model=excluded.car_model, car_year=excluded.car_year'
-    ).bind(token, (p.car_plate || '').trim().toUpperCase(), (p.car_brand || '').trim(), (p.car_model || '').trim(), (p.car_year || '').trim()).run();
+    ).bind(token, clip(p.car_plate, 20).toUpperCase(), clip(p.car_brand, 40), clip(p.car_model, 40), clip(p.car_year, 10)).run();
   } else {
     await env.DB.prepare(
       'INSERT INTO depanator_profiles (user_token, license_number, vehicle_plate, vehicle_type, vehicle_brand, vehicle_capacity, bio) VALUES (?,?,?,?,?,?,?) ' +
       'ON CONFLICT(user_token) DO UPDATE SET license_number=excluded.license_number, vehicle_plate=excluded.vehicle_plate, vehicle_type=excluded.vehicle_type, vehicle_brand=excluded.vehicle_brand, vehicle_capacity=excluded.vehicle_capacity, bio=excluded.bio'
-    ).bind(token, (p.license_number || '').trim(), (p.vehicle_plate || '').trim().toUpperCase(), (p.vehicle_type || '').trim(), (p.vehicle_brand || '').trim(), (p.vehicle_capacity || '').trim(), (p.bio || '').trim()).run();
+    ).bind(token, clip(p.license_number, 60), clip(p.vehicle_plate, 20).toUpperCase(), clip(p.vehicle_type, 40), clip(p.vehicle_brand, 60), clip(p.vehicle_capacity, 40), clip(p.bio, 500)).run();
   }
   return ok(env);
 }
@@ -469,7 +471,7 @@ async function h_rating(request, env, p) {
   const token = getToken(p); if (!token) return err(env, 'Token invalid');
   if (request.method === 'POST') {
     const requestId = parseInt(p.request_id || 0, 10), stars = parseInt(p.stars || 0, 10);
-    if (stars < 1 || stars > 5) return err(env, 'Rating invalid. Valori acceptate: 1-5');
+    if (!Number.isInteger(stars) || stars < 1 || stars > 5) return err(env, 'Rating invalid. Valori acceptate: 1-5');
     const r = await env.DB.prepare(
       "SELECT r.*, u.role FROM requests r JOIN users u ON u.token = ? WHERE r.id = ? AND r.client_token = ? AND r.status = 'completed'"
     ).bind(token, requestId, token).first();
@@ -605,7 +607,7 @@ async function h_admin(request, env, p, ip) {
       total_requests: await q('SELECT COUNT(*) FROM requests'),
       completed_requests: await q("SELECT COUNT(*) FROM requests WHERE status='completed'"),
       total_revenue: await q("SELECT COALESCE(SUM(price_ron),0) FROM requests WHERE status='completed'"),
-      active_today: await q("SELECT COUNT(*) FROM users WHERE date(last_seen) = date('now')"),
+      active_today: await q("SELECT COUNT(*) FROM users WHERE last_seen >= date('now') AND last_seen < date('now','+1 day')"),
     } });
   }
 

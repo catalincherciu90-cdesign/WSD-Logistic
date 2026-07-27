@@ -10,8 +10,6 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 function getAdminSession($db) {
     $sessionToken = $_POST['admin_token'] ?? $_GET['admin_token'] ?? '';
     if (empty($sessionToken)) return null;
-    $stmt = $db->prepare("SELECT * FROM admins WHERE password_hash = ?");
-    // Folosim un token de sesiune stocat in cookie/localStorage
     $stmt = $db->prepare("SELECT * FROM admin_sessions WHERE token = ? AND expires_at > NOW()");
     $stmt->execute([$sessionToken]);
     $session = $stmt->fetch();
@@ -21,16 +19,7 @@ function getAdminSession($db) {
     return $stmt->fetch();
 }
 
-// Creeaza tabela sesiuni admin daca nu exista
-try {
-    $db->exec("CREATE TABLE IF NOT EXISTS admin_sessions (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        admin_id INT NOT NULL,
-        token VARCHAR(64) UNIQUE NOT NULL,
-        expires_at DATETIME NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )");
-} catch(PDOException $e) {}
+// Tabela admin_sessions este definita in database.sql - nu o mai cream la fiecare cerere.
 
 switch ($action) {
 

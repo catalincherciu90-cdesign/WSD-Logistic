@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
     status        ENUM('active', 'pending', 'suspended') NOT NULL DEFAULT 'active',
     lat           DOUBLE DEFAULT NULL,
     lng           DOUBLE DEFAULT NULL,
-    online        TINYINT(1) DEFAULT 0,
+    online        TINYINT(1) NOT NULL DEFAULT 0,
     fcm_token     VARCHAR(255) DEFAULT NULL,
     -- Dovada consimtamantului GDPR (data acceptarii Termenilor + Politicii).
     consent_at    DATETIME DEFAULT NULL,
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS requests (
     id              INT AUTO_INCREMENT PRIMARY KEY,
     client_token    VARCHAR(64) NOT NULL,
     depanator_token VARCHAR(64) DEFAULT NULL,
-    status          ENUM('waiting', 'accepted', 'completed', 'cancelled') DEFAULT 'waiting',
+    status          ENUM('waiting', 'accepted', 'completed', 'cancelled') NOT NULL DEFAULT 'waiting',
     client_lat      DOUBLE DEFAULT NULL,
     client_lng      DOUBLE DEFAULT NULL,
     problem_type    VARCHAR(32) DEFAULT NULL,
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS ratings (
     request_id      INT NOT NULL UNIQUE,
     client_token    VARCHAR(64) NOT NULL,
     depanator_token VARCHAR(64) NOT NULL,
-    stars           TINYINT NOT NULL,
+    stars           TINYINT NOT NULL CHECK (stars BETWEEN 1 AND 5),
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -152,6 +152,7 @@ INSERT IGNORE INTO settings (setting_key, setting_value) VALUES
 -- ---------------------------------------------------------------------------
 CREATE INDEX idx_users_token        ON users(token);
 CREATE INDEX idx_users_role_online  ON users(role, online);
+CREATE INDEX idx_users_role_seen     ON users(role, online, last_seen);
 CREATE INDEX idx_users_status       ON users(status);
 CREATE INDEX idx_requests_status    ON requests(status);
 CREATE INDEX idx_requests_client    ON requests(client_token);

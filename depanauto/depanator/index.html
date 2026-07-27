@@ -341,7 +341,7 @@ async function initApp(){
     map=L.map('map',{zoomControl:false}).setView([44.4268,26.1025],14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
     L.control.zoom({position:'topright'}).addTo(map);
-    startGPS(); setInterval(poll,3000); await registerSW();
+    startGPS(); (function loop(){poll().finally(()=>setTimeout(loop,3000));})(); await registerSW();
     if (typeof initPush === 'function') initPush(API_BASE, 'firebase-messaging-sw.js', token);
     if(!('Notification' in window)) return;
     if(Notification.permission==='granted'){document.getElementById('notif-bar').style.display='none';}

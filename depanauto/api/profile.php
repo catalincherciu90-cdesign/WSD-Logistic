@@ -37,9 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    // Actualizeaza nume/telefon in users
-    $name  = trim($_POST['name'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
+    // Actualizeaza nume/telefon in users (cu limite de lungime - Val4 #7)
+    $name  = mb_substr(trim($_POST['name'] ?? ''), 0, 120);
+    $phone = mb_substr(trim($_POST['phone'] ?? ''), 0, 30);
     if (!empty($name)) {
         $db->prepare("UPDATE users SET name = ?, phone = ? WHERE token = ?")->execute([$name, $phone, $token]);
     }

@@ -14,13 +14,7 @@ if (empty($fcmToken)) jsonError('FCM token lipsa');
 
 $db = getDB();
 
-// Adauga coloana fcm_token daca nu exista (prima rulare)
-try {
-    $db->exec("ALTER TABLE users ADD COLUMN fcm_token VARCHAR(255) DEFAULT NULL");
-} catch (PDOException $e) {
-    // Coloana exista deja, ignoram eroarea
-}
-
+// Coloana fcm_token exista in schema (database.sql) - nu mai rulam ALTER la fiecare cerere.
 $stmt = $db->prepare("UPDATE users SET fcm_token = ? WHERE token = ?");
 $stmt->execute([$fcmToken, $token]);
 

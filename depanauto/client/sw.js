@@ -44,6 +44,22 @@ self.addEventListener('fetch', event => {
         return;
     }
 
+    // Fisiere JS -> stale-while-revalidate: servim din cache instant, dar
+    // reimprospatam in fundal ca o versiune noua sa ajunga la urmatoarea incarcare.
+    if (req.url.endsWith('.js')) {
+        event.respondWith(
+            caches.match(req).then(cached => {
+                const fetched = fetch(req).then(res => {
+                    const copy = res.clone();
+                    caches.open(CACHE_NAME).then(c => c.put(req, copy)).catch(()=>{});
+                    return res;
+                }).catch(() => cached);
+                return cached || fetched;
+            })
+        );
+        return;
+    }
+
     // Asset-uri statice -> cache-first
     event.respondWith(caches.match(req).then(cached => cached || fetch(req)));
 });

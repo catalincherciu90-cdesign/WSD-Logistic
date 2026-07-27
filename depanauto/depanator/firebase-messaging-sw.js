@@ -17,7 +17,8 @@ messaging.onBackgroundMessage(function(payload) {
     const body  = payload.notification?.body  || 'Un client are nevoie de ajutor.';
     self.registration.showNotification(title, {
         body: body,
-        icon: '/depanauto/icon.png',
+        icon: '/depanauto/icons/icon-192.png',
+        badge: '/depanauto/icons/icon-192.png',
         vibrate: [200, 100, 200, 100, 200],
         requireInteraction: true,
         data: payload.data || {}
