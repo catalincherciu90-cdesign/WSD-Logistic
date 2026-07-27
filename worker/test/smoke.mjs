@@ -62,6 +62,16 @@ r = await call('history.php', { token: cliTok }, 'GET'); A(r.body.success && r.b
 
 r = await call('settings.php', {}, 'GET'); A(r.body.success && r.body.settings.price_per_km === 4.5 && r.body.settings.price_min === 25, 'settings.php public (preturi pt landing)');
 
+// --- Regresie securitate (Val 1) ---
+// C1: un depanator NU mai poate schimba tarifele prin action.php (escaladare de privilegii)
+r = await call('action.php', { token: depTok, action: 'update_settings', price_per_km: '0.01', price_min: '0' });
+A(!r.body.success, 'C1: update_settings via action.php respins');
+r = await call('settings.php', {}, 'GET'); A(r.body.settings.price_per_km === 4.5 && r.body.settings.price_min === 25, 'C1: tarifele au ramas neschimbate');
+// C2: un tert nu poate citi mesajele unei curse la care nu participa (IDOR blocat)
+r = await call('auth.php', { action: 'register', role: 'client', name: 'Intrus', email: 'intrus@x.ro', phone: '073', password: 'parola1', consent: '1' }); const intrusTok = r.body.token;
+r = await call('message.php', { token: intrusTok, request_id: reqId }, 'GET'); A(!r.body.success, 'C2: tert respins la citirea mesajelor');
+r = await call('message.php', { token: cliTok, request_id: reqId }, 'GET'); A(r.body.success, 'C2: partea din cursa poate citi mesajele');
+
 const enc = (s) => new TextEncoder().encode(s); const b64 = (b) => Buffer.from(b).toString('base64');
 const salt = crypto.getRandomValues(new Uint8Array(16));
 const key = await crypto.subtle.importKey('raw', enc('admin123'), 'PBKDF2', false, ['deriveBits']);

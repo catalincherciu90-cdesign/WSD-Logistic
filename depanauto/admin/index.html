@@ -266,6 +266,8 @@ let adminToken = localStorage.getItem('depanauto_admin_token');
 let isSuper = false;
 let currentFilters = { client: 'all', depanator: 'all' };
 let searchTimers = {};
+// Escape HTML pentru datele venite de la utilizatori (previne XSS stocat).
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 function toast(msg, dur=3000) {
     const el=document.getElementById('toast');
@@ -360,10 +362,10 @@ async function loadAdmins(){
         if(!data.success)return;
         document.getElementById('admins-list').innerHTML=data.admins.map(a=>`
         <div class="user-card">
-          <div class="user-avatar" style="background:#ede9fe;color:#5b21b6">${a.name.charAt(0).toUpperCase()}</div>
+          <div class="user-avatar" style="background:#ede9fe;color:#5b21b6">${esc((a.name||'?').charAt(0).toUpperCase())}</div>
           <div class="user-info">
-            <div class="user-name">${a.name}</div>
-            <div class="user-meta">${a.email}</div>
+            <div class="user-name">${esc(a.name)}</div>
+            <div class="user-meta">${esc(a.email)}</div>
             <div class="user-details">Ultima autentificare: ${a.last_login?formatDate(a.last_login):'Niciodată'}</div>
             <div class="user-badges">
               ${a.is_super?'<span class="badge badge-super">Super Admin</span>':'<span class="badge badge-active">Admin</span>'}
@@ -379,8 +381,8 @@ async function loadAdmins(){
 function userCard(u){
     const isClient=u.role==='client';
     const initial=(u.name||'?').charAt(0).toUpperCase();
-    const carInfo=isClient?(u.car_brand?`${u.car_brand} ${u.car_model||''} (${u.car_plate||'—'})`:'Mașină necompletată'):(u.vehicle_plate?`${u.vehicle_type||''} ${u.vehicle_brand||''} • ${u.vehicle_plate}`:'Vehicul necompletat');
-    const licenseInfo=!isClient&&u.license_number?`<br>Licență: ${u.license_number}`:'';
+    const carInfo=isClient?(u.car_brand?`${esc(u.car_brand)} ${esc(u.car_model||'')} (${esc(u.car_plate||'—')})`:'Mașină necompletată'):(u.vehicle_plate?`${esc(u.vehicle_type||'')} ${esc(u.vehicle_brand||'')} • ${esc(u.vehicle_plate)}`:'Vehicul necompletat');
+    const licenseInfo=!isClient&&u.license_number?`<br>Licență: ${esc(u.license_number)}`:'';
     const ratingInfo=!isClient&&u.rating?`<span class="stars">${'⭐'.repeat(Math.round(u.rating))}</span> ${parseFloat(u.rating).toFixed(1)} (${u.total_jobs} curse)`:'';
     const lastSeen=u.last_seen?formatDate(u.last_seen):'Niciodată';
 
@@ -395,10 +397,10 @@ function userCard(u){
     }
 
     return `<div class="user-card">
-      <div class="user-avatar ${isClient?'avatar-client':'avatar-dep'}">${initial}</div>
+      <div class="user-avatar ${isClient?'avatar-client':'avatar-dep'}">${esc(initial)}</div>
       <div class="user-info">
-        <div class="user-name">${u.name||'—'}</div>
-        <div class="user-meta">${u.email||'—'} ${u.phone?'• '+u.phone:''}</div>
+        <div class="user-name">${esc(u.name||'—')}</div>
+        <div class="user-meta">${esc(u.email||'—')} ${u.phone?'• '+esc(u.phone):''}</div>
         <div class="user-details">${carInfo}${licenseInfo}<br>Ultima activitate: ${lastSeen}</div>
         <div class="user-badges">
           <span class="badge ${isClient?'badge-client':'badge-dep'}">${isClient?'Client':'Depanator'}</span>

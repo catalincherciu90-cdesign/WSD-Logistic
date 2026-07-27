@@ -101,18 +101,9 @@ switch ($action) {
         jsonResponse(['success' => true]);
         break;
 
-    case 'update_settings':
-        if ($user['role'] !== 'depanator') jsonError('Acces interzis');
-        $fields = ['price_per_km', 'price_fixed', 'price_min'];
-        $stmt = $db->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = ?");
-        foreach ($fields as $field) {
-            if (isset($_POST[$field])) {
-                $val = filter_var($_POST[$field], FILTER_VALIDATE_FLOAT);
-                if ($val !== false && $val >= 0) $stmt->execute([round($val, 2), $field]);
-            }
-        }
-        jsonResponse(['success' => true]);
-        break;
+    // NOTA: tarifele se schimba DOAR prin admin.php (cu sesiune de admin).
+    // Vechiul 'update_settings' de aici permitea oricarui depanator sa modifice
+    // preturile platformei - eliminat din motive de securitate.
 
     default:
         jsonError('Actiune necunoscuta');

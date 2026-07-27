@@ -125,6 +125,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 const API_BASE = 'https://wsdlogistics.ro/depanauto/api';
 let currentBonData = null;
 let currentRatingData = null;
+// Escape HTML pentru datele venite de la utilizatori (previne XSS stocat).
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 let selectedStars = 0;
 let userRole = 'client';
 
@@ -198,7 +200,7 @@ function buildCard(c, role) {
             if (c.my_rating) {
                 ratingBtn = `<button class="btn-rating rated">${starsHtml(c.my_rating)}</button>`;
             } else {
-                ratingBtn = `<button class="btn-rating" onclick='openRating(${c.id},"${c.depanator_name||'Depanator'}","${c.depanator_token||''}")'>⭐ Evaluează</button>`;
+                ratingBtn = `<button class="btn-rating" data-rid="${c.id}" data-dname="${esc(c.depanator_name||'Depanator')}" data-dtok="${esc(c.depanator_token||'')}" onclick="openRatingFromBtn(this)">⭐ Evaluează</button>`;
             }
         }
         footer = `<div class="curse-footer">${bonBtn}${ratingBtn}</div>`;
@@ -212,12 +214,12 @@ function buildCard(c, role) {
 
     return `<div class="curse-card">
       <div class="curse-header">
-        <div><div style="font-size:14px;font-weight:600;color:#111;margin-bottom:3px">${otherName}</div><div class="curse-date">${formatDate(c.created_at)}</div></div>
+        <div><div style="font-size:14px;font-weight:600;color:#111;margin-bottom:3px">${esc(otherName)}</div><div class="curse-date">${formatDate(c.created_at)}</div></div>
         <span class="curse-status s-${c.status}">${statusLabel(c.status)}</span>
       </div>
       <div class="curse-body">
-        ${c.problem_type ? `<div class="curse-row"><span class="curse-label">Problemă</span><span class="curse-value">${PROBLEM_LABELS[c.problem_type]||c.problem_type}</span></div>` : ''}
-        <div class="curse-row"><span class="curse-label">${vehicleLabel}</span><span class="curse-value">${vehicleInfo}</span></div>
+        ${c.problem_type ? `<div class="curse-row"><span class="curse-label">Problemă</span><span class="curse-value">${PROBLEM_LABELS[c.problem_type]||esc(c.problem_type)}</span></div>` : ''}
+        <div class="curse-row"><span class="curse-label">${vehicleLabel}</span><span class="curse-value">${esc(vehicleInfo)}</span></div>
         <div class="curse-row"><span class="curse-label">Distanță</span><span class="curse-value">${c.distance_km ? parseFloat(c.distance_km).toFixed(1)+' km' : '—'}</span></div>
         <div class="curse-row"><span class="curse-label">Durată</span><span class="curse-value">${formatDuration(c.accepted_at,c.completed_at)}</span></div>
         ${ratingRow}
@@ -229,6 +231,9 @@ function buildCard(c, role) {
 }
 
 // RATING
+function openRatingFromBtn(btn) {
+    openRating(parseInt(btn.dataset.rid, 10), btn.dataset.dname, btn.dataset.dtok);
+}
 function openRating(requestId, depName, depToken) {
     currentRatingData = { requestId, depName, depToken };
     selectedStars = 0;
