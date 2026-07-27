@@ -251,10 +251,12 @@ async function h_auth(request, env, p, ip) {
 
     const token = randomToken();
     const hash = await hashPassword(password);
+    // Depanatorii noi asteapta aprobarea adminului; clientii sunt activi imediat.
+    const status = role === 'depanator' ? 'pending' : 'active';
     await env.DB.prepare(
-      "INSERT INTO users (token, role, name, email, phone, password_hash, online, last_seen, consent_at) " +
-      "VALUES (?,?,?,?,?,?,0,datetime('now'),datetime('now'))"
-    ).bind(token, role, name, email, phone, hash).run();
+      "INSERT INTO users (token, role, name, email, phone, password_hash, status, online, last_seen, consent_at) " +
+      "VALUES (?,?,?,?,?,?,?,0,datetime('now'),datetime('now'))"
+    ).bind(token, role, name, email, phone, hash, status).run();
     if (role === 'client') await env.DB.prepare('INSERT INTO client_profiles (user_token) VALUES (?)').bind(token).run();
     else await env.DB.prepare('INSERT INTO depanator_profiles (user_token) VALUES (?)').bind(token).run();
     return ok(env, { token, role, name });
@@ -289,13 +291,16 @@ async function h_create_request(request, env, p, ip) {
   if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return err(env, 'Coordonate GPS in afara limitelor');
   const user = await getUser(env, token);
   if (!user || user.role !== 'client') return err(env, 'Doar clientii pot trimite cereri');
-  const active = await env.DB.prepare("SELECT id FROM requests WHERE client_token = ? AND status IN ('waiting','accepted')").bind(token).first();
-  if (active) return err(env, 'Ai deja o cerere activa');
+  if (user.status && user.status !== 'active') return err(env, 'Contul tău este suspendat.');
   const problemType = PROBLEM_TYPES.has(p.problem_type) ? p.problem_type : null;
   const problemDesc = (p.description || '').trim().slice(0, 300) || null;
+  // Insert atomic: creeaza cererea DOAR daca nu exista deja una activa (previne dubla cerere - I4).
   const res = await env.DB.prepare(
-    "INSERT INTO requests (client_token, status, client_lat, client_lng, problem_type, problem_desc, created_at) VALUES (?,'waiting',?,?,?,?,datetime('now'))"
-  ).bind(token, lat, lng, problemType, problemDesc).run();
+    "INSERT INTO requests (client_token, status, client_lat, client_lng, problem_type, problem_desc, created_at) " +
+    "SELECT ?,'waiting',?,?,?,?,datetime('now') " +
+    "WHERE NOT EXISTS (SELECT 1 FROM requests WHERE client_token=? AND status IN ('waiting','accepted'))"
+  ).bind(token, lat, lng, problemType, problemDesc, token).run();
+  if (res.meta.changes === 0) return err(env, 'Ai deja o cerere activa');
   return ok(env, { request_id: res.meta.last_row_id });
 }
 
@@ -318,13 +323,13 @@ async function h_get_status(request, env, p) {
   await env.DB.prepare("UPDATE users SET last_seen = datetime('now'), online = 1 WHERE token = ?").bind(token).run();
 
   const response = {
-    success: true, role: user.role,
+    success: true, role: user.role, my_status: user.status || 'active',
     my_location: { lat: user.lat, lng: user.lng },
     active_request: null, other_location: null, depanatori_online: 0,
     settings: await getSettings(env),
   };
   const cnt = await env.DB.prepare(
-    "SELECT COUNT(*) AS cnt FROM users WHERE role='depanator' AND online=1 AND last_seen > datetime('now','-30 seconds')"
+    "SELECT COUNT(*) AS cnt FROM users WHERE role='depanator' AND status='active' AND online=1 AND last_seen > datetime('now','-30 seconds')"
   ).first();
   response.depanatori_online = cnt ? cnt.cnt : 0;
 
@@ -376,8 +381,12 @@ async function h_action(request, env, p) {
 
   if (action === 'accept_request') {
     if (user.role !== 'depanator') return err(env, 'Doar depanatorii pot accepta cereri');
+    if (user.status && user.status !== 'active') return err(env, 'Contul tău nu este activ încă. Așteaptă aprobarea administratorului.');
     const requestId = parseInt(p.request_id || 0, 10);
     const depLat = fnum(p.dep_lat), depLng = fnum(p.dep_lng);
+    // Un depanator poate avea o singura cursa activa la un moment dat (C4).
+    const busy = await env.DB.prepare("SELECT id FROM requests WHERE depanator_token = ? AND status = 'accepted'").bind(token).first();
+    if (busy) return err(env, 'Ai deja o cursă activă. Finalizeaz-o înainte să accepți alta.');
     const r = await env.DB.prepare("SELECT * FROM requests WHERE id = ? AND status = 'waiting'").bind(requestId).first();
     if (!r) return err(env, 'Cerere negasita sau deja acceptata');
     const useLat = (depLat !== null && depLat !== 0) ? depLat : user.lat;
@@ -404,21 +413,25 @@ async function h_action(request, env, p) {
 
   if (action === 'cancel_request') {
     const reason = (p.reason || '').trim();
+    const requestId = parseInt(p.request_id || 0, 10);
     if (user.role === 'client') {
       await env.DB.prepare(
         "UPDATE requests SET status='cancelled', cancelled_by='client', cancel_reason=?, cancelled_at=datetime('now') WHERE client_token=? AND status IN ('waiting','accepted')"
       ).bind(reason || 'Anulat de client', token).run();
     } else {
-      await env.DB.prepare(
-        "UPDATE requests SET status='waiting', depanator_token=NULL, accepted_at=NULL, cancelled_by='depanator', cancel_reason=?, cancelled_at=datetime('now') WHERE depanator_token=? AND status='accepted'"
-      ).bind(reason || 'Anulat de depanator', token).run();
+      // Redeschide DOAR cursa indicata; sterge urmele de anulare, cererea revine curata in pool.
+      const sql = "UPDATE requests SET status='waiting', depanator_token=NULL, accepted_at=NULL, cancelled_by=NULL, cancel_reason=NULL, cancelled_at=NULL WHERE depanator_token=? AND status='accepted'" + (requestId ? " AND id=?" : "");
+      await env.DB.prepare(sql).bind(...(requestId ? [token, requestId] : [token])).run();
     }
     return ok(env);
   }
 
   if (action === 'complete_request') {
     if (user.role !== 'depanator') return err(env, 'Doar depanatorii pot finaliza');
-    await env.DB.prepare("UPDATE requests SET status='completed', completed_at=datetime('now') WHERE depanator_token=? AND status='accepted'").bind(token).run();
+    const requestId = parseInt(p.request_id || 0, 10);
+    const sql = "UPDATE requests SET status='completed', completed_at=datetime('now') WHERE depanator_token=? AND status='accepted'" + (requestId ? " AND id=?" : "");
+    const upd = await env.DB.prepare(sql).bind(...(requestId ? [token, requestId] : [token])).run();
+    if (upd.meta.changes === 0) return err(env, 'Nu s-a putut finaliza cursa');
     return ok(env);
   }
 

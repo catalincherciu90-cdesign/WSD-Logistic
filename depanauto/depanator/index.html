@@ -188,6 +188,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </div>
 <div id="map"></div>
 <div id="bottom-panel">
+  <div id="status-warn" style="display:none;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:13.5px;line-height:1.5"></div>
   <div id="install-bar" onclick="installPWA()">📱 Instalează aplicația pe ecranul principal</div>
   <div id="notif-bar" onclick="requestNotifPermission()">🔔 Activează notificările pentru cereri noi</div>
   <div id="request-card"><h3>📍 Cerere nouă!</h3>
@@ -352,7 +353,14 @@ function startGPS(){if(!navigator.geolocation)return;navigator.geolocation.watch
 
 async function sendLocation(){if(!myLat||!token||!isOnline)return;try{await fetch(API_BASE+'/update_location.php',{method:'POST',body:new URLSearchParams({token,lat:myLat,lng:myLng})});}catch(e){}}
 
-async function poll(){if(!token)return;try{const res=await fetch(API_BASE+'/get_status.php?token='+token);const data=await res.json();if(!data.success)return;settings=data.settings||settings;const has=(data.waiting_requests||[]).length>0;if(has&&!hadRequests&&isOnline)playAlert();hadRequests=has;updateUI(data);}catch(e){}}
+let myStatus='active';
+function applyStatusWarn(){
+    const w=document.getElementById('status-warn');
+    if(myStatus==='pending'){w.textContent='⏳ Contul tău este în așteptarea aprobării de către administrator. Nu poți accepta curse până la aprobare.';w.style.display='block';}
+    else if(myStatus==='suspended'){w.textContent='🚫 Contul tău este suspendat. Contactează administratorul.';w.style.display='block';}
+    else{w.style.display='none';}
+}
+async function poll(){if(!token)return;try{const res=await fetch(API_BASE+'/get_status.php?token='+token);const data=await res.json();if(!data.success)return;settings=data.settings||settings;if(data.my_status){myStatus=data.my_status;applyStatusWarn();}const has=(data.waiting_requests||[]).length>0;if(has&&!hadRequests&&isOnline)playAlert();hadRequests=has;updateUI(data);}catch(e){}}
 
 const PROBLEM_LABELS={pana:'🛞 Pană de cauciuc',baterie:'🔋 Baterie descărcată',nu_porneste:'🔑 Nu pornește',tractare:'🚚 Tractare',combustibil:'⛽ Fără combustibil',accident:'💥 Accident',altele:'🔧 Altă problemă'};
 function showDepProblem(o){
@@ -402,10 +410,10 @@ async function updateClientMarker(lat,lng){
 }
 
 async function acceptRequest(){if(!activeRequest||!token)return;try{const res=await fetch(API_BASE+'/action.php',{method:'POST',body:new URLSearchParams({token,action:'accept_request',request_id:activeRequest.id,dep_lat:myLat||'',dep_lng:myLng||''})});const data=await res.json();if(data.success){toast('Cursă acceptată! Câștig: '+data.price_ron.toFixed(2)+' RON');poll();}else{toast('Eroare: '+data.error);}}catch(e){toast('Eroare conexiune');}}
-async function completeRequest(){if(!token)return;try{await fetch(API_BASE+'/action.php',{method:'POST',body:new URLSearchParams({token,action:'complete_request'})});toast('Intervenție finalizată!');poll();}catch(e){}}
-async function cancelRequest(){if(!token)return;try{await fetch(API_BASE+'/action.php',{method:'POST',body:new URLSearchParams({token,action:'cancel_request'})});poll();}catch(e){}}
+async function completeRequest(){if(!token)return;const rid=(activeRequest&&activeRequest.id)||'';try{const res=await fetch(API_BASE+'/action.php',{method:'POST',body:new URLSearchParams({token,action:'complete_request',request_id:rid})});const data=await res.json();if(data.success){toast('Intervenție finalizată!');}else{toast('Eroare: '+data.error);}poll();}catch(e){}}
+async function cancelRequest(){if(!token)return;const rid=(activeRequest&&activeRequest.id)||'';try{await fetch(API_BASE+'/action.php',{method:'POST',body:new URLSearchParams({token,action:'cancel_request',request_id:rid})});poll();}catch(e){}}
 
-function toggleOnline(){isOnline=!isOnline;hadRequests=false;const btn=document.getElementById('online-toggle');btn.textContent=isOnline?'Online':'Offline';btn.className=isOnline?'online':'';document.getElementById('status-text').textContent=isOnline?'Online - aștept cereri':'Offline'; document.getElementById('notify-section').style.display='none'; document.getElementById('dep-dist-row').style.display='none'; document.getElementById('dep-eta-row').style.display='none'; document.getElementById('dep-dist-val').textContent='—'; document.getElementById('dep-eta-val').textContent='—';if(isOnline){sendLocation();poll();}}
+function toggleOnline(){if(!isOnline&&myStatus!=='active'){toast(myStatus==='pending'?'Contul tău așteaptă aprobarea administratorului.':'Contul tău este suspendat.');return;}isOnline=!isOnline;hadRequests=false;const btn=document.getElementById('online-toggle');btn.textContent=isOnline?'Online':'Offline';btn.className=isOnline?'online':'';document.getElementById('status-text').textContent=isOnline?'Online - aștept cereri':'Offline'; document.getElementById('notify-section').style.display='none'; document.getElementById('dep-dist-row').style.display='none'; document.getElementById('dep-eta-row').style.display='none'; document.getElementById('dep-dist-val').textContent='—'; document.getElementById('dep-eta-val').textContent='—';if(isOnline){sendLocation();poll();}}
 
 
 

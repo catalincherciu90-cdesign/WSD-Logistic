@@ -20,16 +20,12 @@ if ($lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) jsonError('Coordonate 
 
 $db = getDB();
 
-// Verifica ca e client
-$stmt = $db->prepare("SELECT role FROM users WHERE token = ?");
+// Verifica ca e client activ
+$stmt = $db->prepare("SELECT role, status FROM users WHERE token = ?");
 $stmt->execute([$token]);
 $user = $stmt->fetch();
 if (!$user || $user['role'] !== 'client') jsonError('Doar clientii pot trimite cereri');
-
-// Nu are deja cerere activa
-$stmt = $db->prepare("SELECT id FROM requests WHERE client_token = ? AND status IN ('waiting','accepted')");
-$stmt->execute([$token]);
-if ($stmt->fetch()) jsonError('Ai deja o cerere activa');
+if (!empty($user['status']) && $user['status'] !== 'active') jsonError('Contul tău este suspendat.');
 
 // Tipul problemei (optional, dar recomandat) + descriere scurta
 $allowedProblems = ['pana', 'baterie', 'nu_porneste', 'tractare', 'combustibil', 'accident', 'altele'];
@@ -37,7 +33,13 @@ $problemType = in_array($_POST['problem_type'] ?? '', $allowedProblems, true) ? 
 $problemDesc = mb_substr(trim($_POST['description'] ?? ''), 0, 300);
 if ($problemDesc === '') $problemDesc = null;
 
-// Creeaza cererea
+// Nu are deja cerere activa. (Pe MySQL/MariaDB de pe cPanel nu putem folosi
+// INSERT...SELECT pe aceeasi tabela - eroare 1093 - deci verificam la nivel de
+// aplicatie. Pentru atomicitate deplina, recomandat un index unic pe status activ.)
+$stmt = $db->prepare("SELECT id FROM requests WHERE client_token = ? AND status IN ('waiting','accepted')");
+$stmt->execute([$token]);
+if ($stmt->fetch()) jsonError('Ai deja o cerere activa');
+
 $stmt = $db->prepare("
     INSERT INTO requests (client_token, status, client_lat, client_lng, problem_type, problem_desc, created_at)
     VALUES (?, 'waiting', ?, ?, ?, ?, NOW())

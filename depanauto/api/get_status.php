@@ -25,6 +25,7 @@ $db->prepare("UPDATE users SET last_seen = NOW(), online = 1 WHERE token = ?")->
 $response = [
     'success' => true,
     'role' => $user['role'],
+    'my_status' => $user['status'] ?? 'active',
     'my_location' => ['lat' => $user['lat'], 'lng' => $user['lng']],
     'active_request' => null,
     'other_location' => null,
@@ -32,10 +33,10 @@ $response = [
     'settings' => getSettings($db),
 ];
 
-// Numara depanatori online (vazuti in ultimele 30 secunde)
+// Numara depanatori online activi (vazuti in ultimele 30 secunde)
 $stmt = $db->prepare("
-    SELECT COUNT(*) as cnt FROM users 
-    WHERE role = 'depanator' AND online = 1 
+    SELECT COUNT(*) as cnt FROM users
+    WHERE role = 'depanator' AND status = 'active' AND online = 1
     AND last_seen > DATE_SUB(NOW(), INTERVAL 30 SECOND)
 ");
 $stmt->execute();

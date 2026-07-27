@@ -19,10 +19,16 @@ switch ($action) {
 
     case 'accept_request':
         if ($user['role'] !== 'depanator') jsonError('Doar depanatorii pot accepta cereri');
+        if (!empty($user['status']) && $user['status'] !== 'active') jsonError('Contul tău nu este activ încă. Așteaptă aprobarea administratorului.');
 
         $requestId = (int)($_POST['request_id'] ?? 0);
         $depLat = filter_var($_POST['dep_lat'] ?? '', FILTER_VALIDATE_FLOAT);
         $depLng = filter_var($_POST['dep_lng'] ?? '', FILTER_VALIDATE_FLOAT);
+
+        // Un depanator poate avea o singura cursa activa la un moment dat (C4).
+        $stmt = $db->prepare("SELECT id FROM requests WHERE depanator_token = ? AND status = 'accepted'");
+        $stmt->execute([$token]);
+        if ($stmt->fetch()) jsonError('Ai deja o cursă activă. Finalizeaz-o înainte să accepți alta.');
 
         $stmt = $db->prepare("SELECT * FROM requests WHERE id = ? AND status = 'waiting'");
         $stmt->execute([$requestId]);
@@ -74,30 +80,34 @@ switch ($action) {
 
     case 'cancel_request':
         $reason = trim($_POST['reason'] ?? '');
+        $requestId = (int)($_POST['request_id'] ?? 0);
         if ($user['role'] === 'client') {
             $stmt = $db->prepare("
-                UPDATE requests 
-                SET status = 'cancelled', cancelled_by = 'client', 
+                UPDATE requests
+                SET status = 'cancelled', cancelled_by = 'client',
                     cancel_reason = ?, cancelled_at = NOW()
                 WHERE client_token = ? AND status IN ('waiting','accepted')
             ");
             $stmt->execute([$reason ?: 'Anulat de client', $token]);
         } else {
-            $stmt = $db->prepare("
-                UPDATE requests 
-                SET status = 'waiting', depanator_token = NULL, accepted_at = NULL,
-                    cancelled_by = 'depanator', cancel_reason = ?, cancelled_at = NOW()
-                WHERE depanator_token = ? AND status = 'accepted'
-            ");
-            $stmt->execute([$reason ?: 'Anulat de depanator', $token]);
+            // Redeschide DOAR cursa indicata; sterge urmele de anulare, cererea revine curata in pool.
+            $sql = "UPDATE requests
+                    SET status = 'waiting', depanator_token = NULL, accepted_at = NULL,
+                        cancelled_by = NULL, cancel_reason = NULL, cancelled_at = NULL
+                    WHERE depanator_token = ? AND status = 'accepted'" . ($requestId ? " AND id = ?" : "");
+            $stmt = $db->prepare($sql);
+            $stmt->execute($requestId ? [$token, $requestId] : [$token]);
         }
         jsonResponse(['success' => true]);
         break;
 
     case 'complete_request':
         if ($user['role'] !== 'depanator') jsonError('Doar depanatorii pot finaliza');
-        $stmt = $db->prepare("UPDATE requests SET status = 'completed', completed_at = NOW() WHERE depanator_token = ? AND status = 'accepted'");
-        $stmt->execute([$token]);
+        $requestId = (int)($_POST['request_id'] ?? 0);
+        $sql = "UPDATE requests SET status = 'completed', completed_at = NOW() WHERE depanator_token = ? AND status = 'accepted'" . ($requestId ? " AND id = ?" : "");
+        $stmt = $db->prepare($sql);
+        $stmt->execute($requestId ? [$token, $requestId] : [$token]);
+        if ($stmt->rowCount() === 0) jsonError('Nu s-a putut finaliza cursa');
         jsonResponse(['success' => true]);
         break;
 

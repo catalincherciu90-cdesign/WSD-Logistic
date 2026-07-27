@@ -37,11 +37,13 @@ switch ($action) {
         $token = bin2hex(random_bytes(32));
         $hash  = password_hash($password, PASSWORD_DEFAULT);
 
+        // Depanatorii noi asteapta aprobarea adminului; clientii sunt activi imediat.
+        $status = $role === 'depanator' ? 'pending' : 'active';
         $stmt = $db->prepare("
-            INSERT INTO users (token, role, name, email, phone, password_hash, online, last_seen, consent_at)
-            VALUES (?, ?, ?, ?, ?, ?, 0, NOW(), NOW())
+            INSERT INTO users (token, role, name, email, phone, password_hash, status, online, last_seen, consent_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 0, NOW(), NOW())
         ");
-        $stmt->execute([$token, $role, $name, $email, $phone, $hash]);
+        $stmt->execute([$token, $role, $name, $email, $phone, $hash, $status]);
 
         // Creeaza profil gol
         if ($role === 'client') {
